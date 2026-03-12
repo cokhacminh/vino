@@ -89,6 +89,32 @@
                         <span class="nav-glow"></span>
                     </a>
 
+                    <!-- 6. Chuyển Đơn Hàng (Admin & Kế Toán) -->
+                    @if(in_array(Auth::user()->Permission, ['Admin', 'Kế Toán']))
+                    <a href="{{ route('transferOrders.index') }}" class="nav-item ripple-effect {{ request()->routeIs('transferOrders.*') ? 'active' : '' }}">
+                        <span class="nav-icon floating">
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7h12m0 0l-4-4m4 4l-4 4m0 6H4m0 0l4 4m-4-4l4-4" />
+                            </svg>
+                        </span>
+                        <span class="nav-text">Chuyển Đơn Hàng</span>
+                        <span class="nav-glow"></span>
+                    </a>
+                    @endif
+
+                    <!-- 7. Đối Chiếu Đơn Hàng (Admin & Kế Toán) -->
+                    @if(in_array(Auth::user()->Permission, ['Admin', 'Kế Toán']))
+                    <a href="{{ route('reconciliation.index') }}" class="nav-item ripple-effect {{ request()->routeIs('reconciliation.*') ? 'active' : '' }}">
+                        <span class="nav-icon floating">
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4" />
+                            </svg>
+                        </span>
+                        <span class="nav-text">Đối Chiếu Đơn Hàng</span>
+                        <span class="nav-glow"></span>
+                    </a>
+                    @endif
+
                     <div class="nav-divider"></div>
 
                     <!-- Đăng xuất -->
@@ -197,5 +223,6 @@
             }
         }
     </script>
+    @stack('scripts')
 </body>
 </html>

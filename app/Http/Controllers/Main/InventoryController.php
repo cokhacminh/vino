@@ -46,7 +46,7 @@ class InventoryController extends Controller
             ->orderByDesc('dh.Ngay')->get();
 
         // DANH SÁCH NHẬP KHO
-        $nhapList = DB::table('chitietphieunhapxuat as ct')
+        $nhapList = DB::table('nhapkho as ct')
             ->leftJoin('sanpham as sp', 'sp.MaSP', '=', 'ct.MaSP')
             ->select('ct.*', 'sp.TenSP')
             ->when($dbNhapFrom, fn($q) => $q->where('ct.Ngay', '>=', $dbNhapFrom))
@@ -63,10 +63,10 @@ class InventoryController extends Controller
             ->groupBy('sp.TenSP')->orderBy('sp.TenSP')->get();
 
         // TỔNG NHẬP KHO
-        $tongNhap = DB::table('chitietphieunhapxuat as ct')
+        $tongNhap = DB::table('nhapkho as ct')
             ->leftJoin('sanpham as sp', 'sp.MaSP', '=', 'ct.MaSP')
             ->select('sp.TenSP', DB::raw('CAST(SUM(ct.SoLuong) AS UNSIGNED) as TongSL'))
-            ->where('ct.LoaiPhieu', 'Nhập Kho')
+
             ->when($dbNhapFrom, fn($q) => $q->where('ct.Ngay', '>=', $dbNhapFrom))
             ->when($dbNhapTo, fn($q) => $q->where('ct.Ngay', '<=', $dbNhapTo))
             ->groupBy('sp.TenSP')->orderBy('sp.TenSP')->get();
@@ -96,7 +96,6 @@ class InventoryController extends Controller
         $request->validate([
             'MaSP' => 'required|string',
             'SoLuong' => 'required|numeric|min:0.1',
-            'LoaiPhieu' => 'required|in:Nhập Kho,Xuất Kho',
         ]);
 
         $ngay = Carbon::now()->format('Y-m-d');
@@ -105,61 +104,56 @@ class InventoryController extends Controller
             if (count($p) == 3) $ngay = "{$p[2]}-{$p[1]}-{$p[0]}";
         }
 
-        DB::table('chitietphieunhapxuat')->insert([
+        DB::table('nhapkho')->insert([
             'Ngay' => $ngay,
             'MaSP' => $request->MaSP,
             'SoLuong' => $request->SoLuong,
             'GiaNhap' => $request->GiaNhap ?? 0,
-            'LoaiPhieu' => $request->LoaiPhieu,
         ]);
 
         // Cập nhật giá nhập mới vào bảng sản phẩm
-        if ($request->LoaiPhieu === 'Nhập Kho' && $request->GiaNhap > 0) {
+        if ($request->GiaNhap > 0) {
             DB::table('sanpham')->where('MaSP', $request->MaSP)->update(['GiaNhap' => $request->GiaNhap]);
         }
 
+        // Nhập kho: cộng tồn kho
         $currentStock = DB::table('quanlysanpham')->where('MaSP', $request->MaSP)->first();
         if ($currentStock) {
-            $newQty = $request->LoaiPhieu === 'Nhập Kho'
-                ? $currentStock->SoLuong + $request->SoLuong
-                : max(0, $currentStock->SoLuong - $request->SoLuong);
+            $newQty = $currentStock->SoLuong + $request->SoLuong;
             DB::table('quanlysanpham')->where('MaSP', $request->MaSP)->update(['SoLuong' => $newQty]);
         } else {
             $sp = DB::table('sanpham')->where('MaSP', $request->MaSP)->first();
             DB::table('quanlysanpham')->insert([
                 'MaSP' => $request->MaSP,
                 'TenSP' => $sp ? $sp->TenSP : $request->MaSP,
-                'SoLuong' => $request->LoaiPhieu === 'Nhập Kho' ? $request->SoLuong : 0,
+                'SoLuong' => $request->SoLuong,
             ]);
         }
 
-        $typeName = $request->LoaiPhieu === 'Nhập Kho' ? 'nhập' : 'xuất';
         if ($request->ajax() || $request->wantsJson()) {
-            return response()->json(['success' => true, 'message' => "Đã {$typeName} kho thành công!"]);
+            return response()->json(['success' => true, 'message' => 'Đã nhập kho thành công!']);
         }
-        return back()->with('success', "Đã {$typeName} kho {$request->SoLuong} sản phẩm {$request->MaSP}!");
+        return back()->with('success', "Đã nhập kho {$request->SoLuong} sản phẩm {$request->MaSP}!");
     }
 
     public function deleteNhap($id)
     {
-        $record = DB::table('chitietphieunhapxuat')->where('id', $id)->first();
+        $record = DB::table('nhapkho')->where('id', $id)->first();
         if ($record) {
-            // Hoàn lại tồn kho
+            // Hoàn lại tồn kho: xóa nhập kho = trừ tồn
             $stock = DB::table('quanlysanpham')->where('MaSP', $record->MaSP)->first();
             if ($stock) {
-                $newQty = $record->LoaiPhieu === 'Nhập Kho'
-                    ? max(0, $stock->SoLuong - $record->SoLuong)
-                    : $stock->SoLuong + $record->SoLuong;
+                $newQty = max(0, $stock->SoLuong - $record->SoLuong);
                 DB::table('quanlysanpham')->where('MaSP', $record->MaSP)->update(['SoLuong' => $newQty]);
             }
-            DB::table('chitietphieunhapxuat')->where('id', $id)->delete();
+            DB::table('nhapkho')->where('id', $id)->delete();
         }
-        return response()->json(['success' => true, 'message' => 'Đã xóa phiếu nhập/xuất']);
+        return response()->json(['success' => true, 'message' => 'Đã xóa phiếu nhập kho']);
     }
 
     public function updateNhap(Request $request, $id)
     {
-        $record = DB::table('chitietphieunhapxuat')->where('id', $id)->first();
+        $record = DB::table('nhapkho')->where('id', $id)->first();
         if (!$record) {
             return response()->json(['success' => false, 'message' => 'Không tìm thấy phiếu']);
         }
@@ -173,18 +167,13 @@ class InventoryController extends Controller
         $diff = $newSL - $oldSL;
 
         // Cập nhật số lượng trong phiếu
-        DB::table('chitietphieunhapxuat')->where('id', $id)->update(['SoLuong' => $newSL]);
+        DB::table('nhapkho')->where('id', $id)->update(['SoLuong' => $newSL]);
 
         // Cập nhật tồn kho
+        // Nhập kho: tồn kho += chênh lệch
         $stock = DB::table('quanlysanpham')->where('MaSP', $record->MaSP)->first();
         if ($stock) {
-            if ($record->LoaiPhieu === 'Nhập Kho') {
-                // Nhập thêm: tồn kho += chênh lệch
-                $newStockQty = max(0, $stock->SoLuong + $diff);
-            } else {
-                // Xuất thêm: tồn kho -= chênh lệch
-                $newStockQty = max(0, $stock->SoLuong - $diff);
-            }
+            $newStockQty = max(0, $stock->SoLuong + $diff);
             DB::table('quanlysanpham')->where('MaSP', $record->MaSP)->update(['SoLuong' => $newStockQty]);
         }
 
@@ -194,5 +183,110 @@ class InventoryController extends Controller
     public function history(Request $request)
     {
         return $this->index($request->merge(['tab' => 'history']));
+    }
+
+    public function resetData(Request $request)
+    {
+        // Chỉ Admin mới được reset
+        if (auth()->user()->Permission !== 'Admin') {
+            return response()->json(['success' => false, 'message' => 'Bạn không có quyền thực hiện']);
+        }
+
+        $mode = $request->input('mode'); // ngay | thang
+        $type = $request->input('type'); // xuat | nhap | all
+        $value = $request->input('value'); // dd/mm/yyyy hoặc mm/yyyy
+
+        if (!$mode || !$type || !$value) {
+            return response()->json(['success' => false, 'message' => 'Thiếu thông tin']);
+        }
+
+        // Xác định khoảng thời gian
+        if ($mode === 'ngay') {
+            $parts = explode('/', $value);
+            if (count($parts) !== 3) return response()->json(['success' => false, 'message' => 'Ngày không hợp lệ']);
+            $dateFrom = "{$parts[2]}-{$parts[1]}-{$parts[0]}";
+            $dateTo = $dateFrom;
+        } else {
+            // Theo tháng: mm/yyyy
+            $parts = explode('/', $value);
+            if (count($parts) !== 2) return response()->json(['success' => false, 'message' => 'Tháng không hợp lệ']);
+            $month = str_pad($parts[0], 2, '0', STR_PAD_LEFT);
+            $year = $parts[1];
+            $dateFrom = "{$year}-{$month}-01";
+            $dateTo = date('Y-m-t', strtotime($dateFrom));
+        }
+
+        DB::beginTransaction();
+        try {
+            $messages = [];
+
+            // Reset Xuất Kho (hoặc bước 1 của Reset Toàn Bộ)
+            if ($type === 'xuat' || $type === 'all') {
+                // Lấy chi tiết đơn hàng trong khoảng thời gian
+                $chiTiet = DB::table('chitietdonhang')
+                    ->whereBetween('NgayBan', [$dateFrom, $dateTo])
+                    ->get();
+
+                // Bù lại tồn kho
+                foreach ($chiTiet as $ct) {
+                    DB::table('quanlysanpham')
+                        ->where('MaSP', $ct->MaSP)
+                        ->increment('SoLuong', $ct->SoLuong);
+                }
+
+                // Lấy danh sách MaDH cần xóa
+                $maDHs = DB::table('donhang')
+                    ->whereBetween('Ngay', [$dateFrom, $dateTo])
+                    ->pluck('MaDH')
+                    ->toArray();
+
+                // Xóa chi tiết đơn hàng
+                DB::table('chitietdonhang')
+                    ->whereBetween('NgayBan', [$dateFrom, $dateTo])
+                    ->delete();
+
+                // Xóa đơn hàng
+                $countXuat = DB::table('donhang')
+                    ->whereBetween('Ngay', [$dateFrom, $dateTo])
+                    ->delete();
+
+                $messages[] = "Đã xóa {$countXuat} đơn hàng xuất kho";
+            }
+
+            // Reset Nhập Kho (hoặc bước 2 của Reset Toàn Bộ)
+            if ($type === 'nhap' || $type === 'all') {
+                // Lấy nhập kho trong khoảng thời gian
+                $nhapList = DB::table('nhapkho')
+                    ->whereBetween('Ngay', [$dateFrom, $dateTo])
+                    ->get();
+
+                // Trừ lại tồn kho
+                foreach ($nhapList as $nk) {
+                    DB::table('quanlysanpham')
+                        ->where('MaSP', $nk->MaSP)
+                        ->decrement('SoLuong', $nk->SoLuong);
+                }
+
+                // Xóa nhập kho
+                $countNhap = DB::table('nhapkho')
+                    ->whereBetween('Ngay', [$dateFrom, $dateTo])
+                    ->delete();
+
+                $messages[] = "Đã xóa {$countNhap} phiếu nhập kho";
+            }
+
+            DB::commit();
+
+            return response()->json([
+                'success' => true,
+                'message' => implode('. ', $messages),
+            ]);
+        } catch (\Exception $e) {
+            DB::rollBack();
+            return response()->json([
+                'success' => false,
+                'message' => 'Lỗi: ' . $e->getMessage(),
+            ]);
+        }
     }
 }

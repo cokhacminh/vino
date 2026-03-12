@@ -22,7 +22,10 @@
 .data-table td{padding:10px 16px;color:var(--text);font-size:14px;border-bottom:1px solid var(--border-light)}
 .data-table tr:hover td{background:#f8fafc}
 .data-table tr:last-child td{border-bottom:none}
-.two-col{display:grid;grid-template-columns:1fr 1fr;gap:24px}
+.two-col{display:grid;grid-template-columns:1fr 1fr;gap:24px;align-items:start}
+.table-scroll{max-height:422px;overflow-y:auto;border-radius:var(--radius);border:1px solid var(--border);box-shadow:var(--shadow-sm)}
+.table-scroll .data-table{border:none;box-shadow:none;border-radius:0}
+.table-scroll .data-table thead th{position:sticky;top:0;z-index:1}
 @media(max-width:768px){.two-col{grid-template-columns:1fr}}
 .dashboard-month-picker .form-input{background:#fff;border:1.5px solid var(--border);border-radius:10px;padding:8px 14px;font-size:14px;cursor:pointer}
 </style>
@@ -39,16 +42,6 @@
     </div>
     <div class="stat-grid">
         <div class="stat-card">
-            <div class="stat-icon purple"><i class="fa-solid fa-users"></i></div>
-            <div class="stat-value">{{ number_format($totalUsers) }}</div>
-            <div class="stat-label">Nhân Viên</div>
-        </div>
-        <div class="stat-card">
-            <div class="stat-icon blue"><i class="fa-solid fa-user-group"></i></div>
-            <div class="stat-value">{{ number_format($totalCustomers) }}</div>
-            <div class="stat-label">Khách Hàng</div>
-        </div>
-        <div class="stat-card">
             <div class="stat-icon green"><i class="fa-solid fa-box-open"></i></div>
             <div class="stat-value">{{ number_format($ordersMonth) }}</div>
             <div class="stat-label">Đơn Hàng Tháng</div>
@@ -59,15 +52,17 @@
             <div class="stat-label">Doanh Thu Tháng</div>
         </div>
         <div class="stat-card">
-            <div class="stat-icon red"><i class="fa-solid fa-wallet"></i></div>
-            <div class="stat-value">{{ number_format($expensesMonth) }}đ</div>
-            <div class="stat-label">Chi Phí Tháng</div>
+            <div class="stat-icon blue"><i class="fa-solid fa-boxes-stacked"></i></div>
+            <div class="stat-value">{{ number_format($tongTienHang) }}đ</div>
+            <div class="stat-label">Tổng Tiền Hàng</div>
         </div>
-        <div class="stat-card">
-            <div class="stat-icon purple"><i class="fa-solid fa-cubes"></i></div>
-            <div class="stat-value">{{ number_format($totalProducts) }}</div>
-            <div class="stat-label">Sản Phẩm</div>
+        @if($user->Permission === 'Admin')
+        <div class="stat-card" style="border-color:#059669">
+            <div class="stat-icon green" style="background:linear-gradient(135deg,#d1fae5,#a7f3d0)"><i class="fa-solid fa-chart-line"></i></div>
+            <div class="stat-value" style="color:#059669">{{ number_format($revenueMonth - $tongTienHang) }}đ</div>
+            <div class="stat-label">Lợi Nhuận</div>
         </div>
+        @endif
     </div>
     <div class="two-col">
         <div>
@@ -89,6 +84,27 @@
             </table>
         </div>
         <div>
+            <div class="section-title"><i class="fa-solid fa-calendar-days"></i> Thống Kê Đơn Hàng Theo Ngày</div>
+            <div class="table-scroll">
+            <table class="data-table">
+                <thead><tr><th>Ngày</th><th style="text-align:center">Số Đơn</th><th style="text-align:right">Tổng Doanh Thu</th></tr></thead>
+                <tbody>
+                    @forelse($dailyOrders as $day)
+                    <tr>
+                        <td>{{ \Carbon\Carbon::parse($day->Ngay)->format('d/m/Y') }}</td>
+                        <td style="text-align:center;font-weight:600">{{ number_format($day->SoDon) }}</td>
+                        <td style="text-align:right;color:#059669;font-weight:600">{{ number_format($day->TongDoanhThu) }}đ</td>
+                    </tr>
+                    @empty
+                    <tr><td colspan="3" style="text-align:center;color:var(--text-muted)">Chưa có dữ liệu</td></tr>
+                    @endforelse
+                </tbody>
+            </table>
+            </div>
+        </div>
+    </div>
+    <div class="two-col" style="margin-top:24px">
+        <div>
             <div class="section-title"><i class="fa-solid fa-triangle-exclamation" style="color:#f59e0b"></i> Cảnh Báo Tồn Kho Thấp</div>
             <table class="data-table">
                 <thead><tr><th>Mã SP</th><th>Tên SP</th><th>Tồn Kho</th><th>ĐVT</th></tr></thead>
@@ -102,6 +118,22 @@
                     </tr>
                     @empty
                     <tr><td colspan="4" style="text-align:center;color:var(--text-muted)">Không có cảnh báo</td></tr>
+                    @endforelse
+                </tbody>
+            </table>
+        </div>
+        <div>
+            <div class="section-title"><i class="fa-solid fa-ranking-star"></i> Tổng Sản Phẩm Bán Ra</div>
+            <table class="data-table">
+                <thead><tr><th>Sản Phẩm</th><th style="text-align:right">Số Lượng</th></tr></thead>
+                <tbody>
+                    @forelse($topProducts as $p)
+                    <tr>
+                        <td>{{ $p->TenSP ?? 'N/A' }}</td>
+                        <td style="text-align:right;font-weight:600;color:#2563eb">{{ number_format($p->TongSL) }}</td>
+                    </tr>
+                    @empty
+                    <tr><td colspan="2" style="text-align:center;color:var(--text-muted)">Chưa có dữ liệu</td></tr>
                     @endforelse
                 </tbody>
             </table>

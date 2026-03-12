@@ -7,6 +7,8 @@ use App\Http\Controllers\Main\AccountController;
 use App\Http\Controllers\Main\OrderController;
 use App\Http\Controllers\Main\ProductController;
 use App\Http\Controllers\Main\InventoryController;
+use App\Http\Controllers\Main\TransferOrderController;
+use App\Http\Controllers\Main\ReconciliationController;
 
 // Trang chủ
 Route::get('/', function () {
@@ -66,5 +68,20 @@ Route::middleware('auth')->group(function () {
         Route::post('/import-export', [InventoryController::class, 'storeImportExport'])->name('importExport');
         Route::delete('/nhap/{id}', [InventoryController::class, 'deleteNhap'])->name('deleteNhap');
         Route::put('/nhap/{id}', [InventoryController::class, 'updateNhap'])->name('updateNhap');
+        Route::post('/reset-data', [InventoryController::class, 'resetData'])->name('resetData');
+    });
+
+    // 6. Transfer Orders - CHUYỂN ĐƠN HÀNG
+    Route::prefix('transfer-orders')->name('transferOrders.')->group(function() {
+        Route::get('/', [TransferOrderController::class, 'index'])->name('index');
+        Route::get('/data', [TransferOrderController::class, 'getData'])->name('data');
+        Route::post('/save-settings', [TransferOrderController::class, 'saveSettings'])->name('saveSettings');
+        Route::post('/transfer', [TransferOrderController::class, 'transferOrder'])->name('transfer');
+    });
+
+    // 7. Reconciliation - ĐỐI CHIẾU ĐƠN HÀNG
+    Route::prefix('reconciliation')->name('reconciliation.')->group(function() {
+        Route::get('/', [ReconciliationController::class, 'index'])->name('index');
+        Route::post('/fetch', [ReconciliationController::class, 'fetchData'])->name('fetch');
     });
 });

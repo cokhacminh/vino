@@ -16,12 +16,7 @@ class DashboardController extends Controller
         $dateFrom = Carbon::parse($month . '-01')->startOfMonth()->format('Y-m-d');
         $dateTo = Carbon::parse($month . '-01')->endOfMonth()->format('Y-m-d');
 
-        // Stats
-        $totalUsers = DB::table('users')->where('TinhTrang', 'Đang Làm Việc')->count();
-        $totalCustomers = DB::table('khachhang')->count();
-        $totalProducts = DB::table('sanpham')->count();
-
-        // Đơn hàng tháng (dùng cột Ngay)
+        // Đơn hàng tháng
         $ordersMonth = DB::table('donhang')
             ->whereBetween('Ngay', [$dateFrom, $dateTo])
             ->count();
@@ -30,11 +25,11 @@ class DashboardController extends Controller
             ->whereBetween('Ngay', [$dateFrom, $dateTo])
             ->sum('TongTien');
 
-        // Chi phí
-        $expensesMonth = DB::table('hoadonchi')
-            ->whereBetween('Ngay', [$dateFrom, $dateTo])
-            ->where('TinhTrang', 'Có Hiệu Lực')
-            ->sum('SoTien');
+        // Tổng tiền hàng (SoLuong * GiaNhap từ chitietdonhang)
+        $tongTienHang = DB::table('chitietdonhang')
+            ->whereBetween('NgayBan', [$dateFrom, $dateTo])
+            ->select(DB::raw('SUM(SoLuong * GiaNhap) as total'))
+            ->value('total') ?? 0;
 
         // Top 10 Best Seller
         $topSellers = DB::table('donhang as dh')
@@ -51,7 +46,7 @@ class DashboardController extends Controller
             ->limit(10)
             ->get();
 
-        // Tồn kho cảnh báo (sản phẩm tồn kho thấp)
+        // Tồn kho cảnh báo
         $lowStock = DB::table('quanlysanpham as q')
             ->leftJoin('sanpham as s', 's.MaSP', '=', 'q.MaSP')
             ->where('q.SoLuong', '<=', 10)
@@ -61,10 +56,33 @@ class DashboardController extends Controller
             ->limit(10)
             ->get();
 
+        // Thống kê đơn hàng theo ngày
+        $dailyOrders = DB::table('donhang')
+            ->whereBetween('Ngay', [$dateFrom, $dateTo])
+            ->select(
+                'Ngay',
+                DB::raw('COUNT(*) as SoDon'),
+                DB::raw('SUM(TongTien) as TongDoanhThu')
+            )
+            ->groupBy('Ngay')
+            ->orderByDesc('Ngay')
+            ->get();
+
+        // Tổng sản phẩm bán ra
+        $topProducts = DB::table('chitietdonhang as ct')
+            ->leftJoin('sanpham as sp', 'sp.MaSP', '=', 'ct.MaSP')
+            ->whereBetween('ct.NgayBan', [$dateFrom, $dateTo])
+            ->select(
+                'sp.TenSP',
+                DB::raw('CAST(SUM(ct.SoLuong) AS UNSIGNED) as TongSL')
+            )
+            ->groupBy('sp.TenSP')
+            ->orderByDesc('TongSL')
+            ->get();
+
         return view('main.dashboard', compact(
-            'month', 'user', 'totalUsers', 'totalCustomers', 'totalProducts',
-            'ordersMonth', 'revenueMonth', 'expensesMonth',
-            'topSellers', 'lowStock'
+            'month', 'user', 'ordersMonth', 'revenueMonth', 'tongTienHang',
+            'topSellers', 'lowStock', 'dailyOrders', 'topProducts'
         ));
     }
 }
