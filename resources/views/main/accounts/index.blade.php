@@ -47,7 +47,8 @@ code{color:var(--primary);background:var(--primary-bg);padding:2px 8px;border-ra
                 <td><span class="badge {{ ($acc->TinhTrang??'')==='Đang Làm Việc'?'badge-active':'badge-inactive' }}">{{ $acc->TinhTrang??'Đang Làm Việc' }}</span></td>
                 <td style="white-space:nowrap;display:flex;gap:6px">
                     <button class="btn-primary btn-sm" style="background:linear-gradient(135deg,#d97706,#f59e0b);box-shadow:0 2px 8px rgba(217,119,6,.2)" onclick='openEditModal(@json($acc))'><i class="fa-solid fa-pen"></i></button>
-                    @if($acc->id != auth()->id())<button class="btn-primary btn-sm" style="background:linear-gradient(135deg,#dc2626,#ef4444);box-shadow:0 2px 8px rgba(220,38,38,.2)" onclick="deleteAccount({{ $acc->id }})"><i class="fa-solid fa-trash"></i></button>@endif
+                    @if($user->Permission === 'Admin' && $acc->id != auth()->id())<button class="btn-primary btn-sm" style="background:linear-gradient(135deg,#2563eb,#3b82f6);box-shadow:0 2px 8px rgba(37,99,235,.2)" onclick="impersonateAccount({{ $acc->id }}, '{{ addslashes($acc->name) }}')"><i class="fa-solid fa-right-to-bracket"></i></button>@endif
+                    @if($user->Permission === 'Admin' && $acc->id != auth()->id())<button class="btn-primary btn-sm" style="background:linear-gradient(135deg,#dc2626,#ef4444);box-shadow:0 2px 8px rgba(220,38,38,.2)" onclick="deleteAccount({{ $acc->id }})"><i class="fa-solid fa-trash"></i></button>@endif
                 </td>
             </tr>
             @endforeach
@@ -83,5 +84,19 @@ function openEditModal(a){document.getElementById('editId').value=a.id;document.
 function saveEdit(){const id=document.getElementById('editId').value;const fd=new FormData(document.getElementById('editForm'));const d={};fd.forEach((v,k)=>{if(v)d[k]=v});fetch(`/accounts/${id}`,{method:'PUT',headers:{'Content-Type':'application/json','X-CSRF-TOKEN':csrfToken},body:JSON.stringify(d)}).then(r=>r.json()).then(r=>{if(r.success){alert(r.message);location.reload()}else alert(r.message||'Lỗi')})}
 function deleteAccount(id){if(!confirm('Vô hiệu hóa tài khoản này?'))return;fetch(`/accounts/${id}`,{method:'DELETE',headers:{'X-CSRF-TOKEN':csrfToken}}).then(r=>r.json()).then(r=>{if(r.success){alert(r.message);location.reload()}else alert(r.message)})}
 document.querySelectorAll('.modal-overlay').forEach(m=>{m.addEventListener('click',e=>{if(e.target===m)m.classList.remove('show')})});
+function impersonateAccount(id, name) {
+    if (!confirm('Đăng nhập vào tài khoản: ' + name + '?')) return;
+    fetch(`/accounts/${id}/impersonate`, {
+        method: 'POST',
+        headers: {'X-CSRF-TOKEN': csrfToken}
+    }).then(r => r.json()).then(r => {
+        if (r.success) {
+            alert(r.message);
+            window.location.href = '/dashboard';
+        } else {
+            alert(r.message || 'Lỗi');
+        }
+    }).catch(() => alert('Lỗi kết nối'));
+}
 </script>
 @endpush

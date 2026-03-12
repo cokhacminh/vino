@@ -21,6 +21,11 @@ class AccountController extends Controller
 
         $accounts = DB::table('users')->orderBy('name')->get();
 
+        // Non-admin users cannot see Admin accounts
+        if ($user->Permission !== 'Admin') {
+            $accounts = $accounts->filter(fn($a) => $a->Permission !== 'Admin');
+        }
+
         return view('main.accounts.index', compact('accounts', 'user'));
     }
 
@@ -118,5 +123,29 @@ class AccountController extends Controller
         DB::table('users')->where('id', $id)->update(['TinhTrang' => 'Đã Nghỉ Việc']);
 
         return response()->json(['success' => true, 'message' => 'Đã vô hiệu hóa tài khoản']);
+    }
+
+    public function impersonate($id)
+    {
+        $user = Auth::user();
+        if ($user->Permission !== 'Admin') {
+            return response()->json(['success' => false, 'message' => 'Chỉ Admin mới được sử dụng tính năng này']);
+        }
+
+        $target = DB::table('users')->where('id', $id)->first();
+        if (!$target) {
+            return response()->json(['success' => false, 'message' => 'Không tìm thấy tài khoản']);
+        }
+
+        if ($id == $user->id) {
+            return response()->json(['success' => false, 'message' => 'Bạn đang dùng tài khoản này']);
+        }
+
+        // Đăng xuất admin, đăng nhập tài khoản target
+        Auth::logout();
+        Auth::loginUsingId($id);
+        request()->session()->regenerate();
+
+        return response()->json(['success' => true, 'message' => 'Đã chuyển sang tài khoản ' . $target->name]);
     }
 }

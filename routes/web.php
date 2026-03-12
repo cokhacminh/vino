@@ -37,6 +37,7 @@ Route::middleware('auth')->group(function () {
         Route::post('/', [AccountController::class, 'store'])->name('store');
         Route::put('/{id}', [AccountController::class, 'update'])->name('update');
         Route::delete('/{id}', [AccountController::class, 'destroy'])->name('destroy');
+        Route::post('/{id}/impersonate', [AccountController::class, 'impersonate'])->name('impersonate');
     });
 
     // API: Lấy chức vụ theo phòng ban
