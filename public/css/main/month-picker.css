@@ -1,0 +1,99 @@
+/* =============================================
+   MONTH PICKER - Reusable Component
+   Usage: Include this CSS + month-picker.js
+   HTML: @include('main.components.month-picker', ['month' => $thang, 'year' => $nam])
+   ============================================= */
+
+.kmp-wrap {
+    position: relative;
+    display: inline-block;
+}
+
+.kmp-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 8px 14px;
+    background: linear-gradient(135deg, #f8fafc, #f1f5f9);
+    border: 2px solid #e2e8f0;
+    border-radius: 10px;
+    font-size: 13px;
+    font-weight: 600;
+    color: #475569;
+    cursor: pointer;
+    transition: all 0.2s;
+    white-space: nowrap;
+}
+
+.kmp-btn:hover {
+    border-color: #6d28d9;
+    color: #6d28d9;
+}
+
+.kmp-dropdown {
+    position: absolute;
+    top: calc(100% + 6px);
+    right: 0;
+    background: white;
+    border-radius: 14px;
+    box-shadow: 0 8px 30px rgba(0, 0, 0, 0.12), 0 2px 8px rgba(0, 0, 0, 0.06);
+    padding: 12px;
+    z-index: 100;
+    min-width: 260px;
+}
+
+.kmp-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 10px;
+    padding: 0 4px;
+}
+
+.kmp-header span {
+    font-size: 15px;
+    font-weight: 700;
+    color: #1e293b;
+}
+
+.kmp-nav {
+    background: none;
+    border: none;
+    font-size: 20px;
+    cursor: pointer;
+    color: #6d28d9;
+    padding: 4px 8px;
+    border-radius: 6px;
+}
+
+.kmp-nav:hover {
+    background: #f5f3ff;
+}
+
+.kmp-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 4px;
+}
+
+.kmp-month {
+    padding: 8px 4px;
+    border: none;
+    border-radius: 8px;
+    font-size: 12px;
+    font-weight: 600;
+    cursor: pointer;
+    background: transparent;
+    color: #475569;
+    transition: all 0.15s;
+}
+
+.kmp-month:hover {
+    background: #f5f3ff;
+    color: #6d28d9;
+}
+
+.kmp-selected {
+    background: #6d28d9 !important;
+    color: white !important;
+}
