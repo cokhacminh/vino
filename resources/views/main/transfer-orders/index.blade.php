@@ -490,7 +490,11 @@ function renderTongXuat(results) {
     const list = Object.values(totals).sort((a, b) => a.TenSP.localeCompare(b.TenSP));
     if (!list.length) { tbody.innerHTML = '<tr><td colspan="3" class="to-empty">Không có dữ liệu</td></tr>'; return; }
     tbody.innerHTML = list.map(i => {
-        return `<tr><td style="text-align:left;padding-left:10px">${i.TenSP}</td><td style="font-weight:600">${i.SoLuong.toLocaleString('vi-VN')}</td><td>—</td></tr>`;
+        const stock = INVENTORY_ORIGINAL.find(s => s.MaSP === i.MaSP);
+        const original = stock ? stock.SoLuong : 0;
+        const remain = original - i.SoLuong;
+        const remainStyle = remain <= 0 ? 'color:#dc2626;font-weight:700' : 'font-weight:600';
+        return `<tr><td style="text-align:left;padding-left:10px">${i.TenSP}</td><td style="font-weight:600">${i.SoLuong.toLocaleString('vi-VN')}</td><td style="${remainStyle}">${remain.toLocaleString('vi-VN')}</td></tr>`;
     }).join('');
 }
 

@@ -105,22 +105,29 @@
     </div>
     <div class="two-col" style="margin-top:24px">
         <div>
-            <div class="section-title"><i class="fa-solid fa-triangle-exclamation" style="color:#f59e0b"></i> Cảnh Báo Tồn Kho Thấp</div>
+            <div class="section-title"><i class="fa-solid fa-circle-check" style="color:#059669"></i> Đơn Giao Thành Công Hôm Nay</div>
+            <div class="table-scroll" style="max-height:395px">
             <table class="data-table">
-                <thead><tr><th>Mã SP</th><th>Tên SP</th><th>Tồn Kho</th><th>ĐVT</th></tr></thead>
+                <thead><tr><th>Mã Đơn</th><th style="text-align:right">Tổng Tiền</th><th style="text-align:center">Trạng Thái</th></tr></thead>
                 <tbody>
-                    @forelse($lowStock as $item)
+                    @forelse($successOrders as $o)
                     <tr>
-                        <td><code style="color:var(--primary);background:var(--primary-bg);padding:2px 8px;border-radius:6px">{{ $item->MaSP }}</code></td>
-                        <td>{{ $item->TenSP }}</td>
-                        <td style="color:#dc2626;font-weight:700">{{ number_format($item->SoLuong, 1) }}</td>
-                        <td>{{ $item->DonViTinh ?? '' }}</td>
+                        <td><code style="color:#1e40af;background:#dbeafe;padding:2px 8px;border-radius:6px">{{ $o->MaDH }}</code></td>
+                        <td style="text-align:right;font-weight:600">{{ $o->TongTien }}đ</td>
+                        <td style="text-align:center">
+                            @if($o->daChuyenDon)
+                                <span style="color:#059669;font-weight:600"><i class="fa-solid fa-check-circle"></i> Đã Chuyển Đơn</span>
+                            @else
+                                <span style="color:#dc2626;font-weight:600"><i class="fa-solid fa-xmark-circle"></i> Chưa Chuyển Đơn</span>
+                            @endif
+                        </td>
                     </tr>
                     @empty
-                    <tr><td colspan="4" style="text-align:center;color:var(--text-muted)">Không có cảnh báo</td></tr>
+                    <tr><td colspan="3" style="text-align:center;color:var(--text-muted)">Chưa có dữ liệu</td></tr>
                     @endforelse
                 </tbody>
             </table>
+            </div>
         </div>
         <div>
             <div class="section-title"><i class="fa-solid fa-ranking-star"></i> Tổng Sản Phẩm Bán Ra</div>

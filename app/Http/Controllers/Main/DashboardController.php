@@ -46,15 +46,29 @@ class DashboardController extends Controller
             ->limit(10)
             ->get();
 
-        // Tồn kho cảnh báo
-        $lowStock = DB::table('quanlysanpham as q')
-            ->leftJoin('sanpham as s', 's.MaSP', '=', 'q.MaSP')
-            ->where('q.SoLuong', '<=', 10)
-            ->where('q.SoLuong', '>', 0)
-            ->select('q.MaSP', 'q.TenSP', 'q.SoLuong', 's.DonViTinh')
-            ->orderBy('q.SoLuong')
-            ->limit(10)
-            ->get();
+        // Đơn giao thành công hôm nay (webhook)
+        $successOrders = collect();
+        try {
+            $curl = curl_init();
+            curl_setopt_array($curl, [
+                CURLOPT_URL => 'https://thuysansg.com/webhook/don-thanh-cong',
+                CURLOPT_RETURNTRANSFER => true,
+                CURLOPT_TIMEOUT => 10,
+                CURLOPT_FOLLOWLOCATION => true,
+                CURLOPT_HTTP_VERSION => CURL_HTTP_VERSION_1_1,
+            ]);
+            $response = curl_exec($curl);
+            curl_close($curl);
+            $data = json_decode($response, false) ?: [];
+            if (count($data) > 0) {
+                $maDHList = array_filter(array_map(fn($o) => $o->MaDH ?? '', (array) $data));
+                $existingMaDH = DB::table('donhang')->whereIn('MaDH', $maDHList)->pluck('MaDH')->toArray();
+                foreach ($data as $o) {
+                    $o->daChuyenDon = in_array($o->MaDH ?? '', $existingMaDH);
+                }
+                $successOrders = collect($data);
+            }
+        } catch (\Exception $e) {}
 
         // Thống kê đơn hàng theo ngày
         $dailyOrders = DB::table('donhang')
@@ -82,7 +96,7 @@ class DashboardController extends Controller
 
         return view('main.dashboard', compact(
             'month', 'user', 'ordersMonth', 'revenueMonth', 'tongTienHang',
-            'topSellers', 'lowStock', 'dailyOrders', 'topProducts'
+            'topSellers', 'successOrders', 'dailyOrders', 'topProducts'
         ));
     }
 }
