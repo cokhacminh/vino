@@ -162,9 +162,8 @@
                 @endif
                 @yield('content')
             </main>
-        </div>
     </div>
-    @stack('scripts')
+    </div>
     <script>
         document.addEventListener('DOMContentLoaded', function() {
             // Ripple Effect

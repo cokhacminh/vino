@@ -163,6 +163,14 @@ class OrderController extends Controller
 
         $order = DB::table('donhang')->where('id', $id)->first();
         if ($order) {
+            // Bù lại tồn kho
+            $chiTiet = DB::table('chitietdonhang')->where('MaDH', $order->MaDH)->get();
+            foreach ($chiTiet as $ct) {
+                DB::table('quanlysanpham')
+                    ->where('MaSP', $ct->MaSP)
+                    ->increment('SoLuong', $ct->SoLuong);
+            }
+
             DB::table('chitietdonhang')->where('MaDH', $order->MaDH)->delete();
             DB::table('khachhang')->where('MaDH', $order->MaDH)->delete();
             DB::table('donhang')->where('id', $id)->delete();

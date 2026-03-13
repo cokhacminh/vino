@@ -200,7 +200,7 @@ code{color:var(--primary);background:var(--primary-bg);padding:2px 6px;border-ra
 <script src="https://cdn.jsdelivr.net/npm/flatpickr/dist/l10n/vn.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/flatpickr/dist/plugins/monthSelect/index.js"></script>
 <script>
-const csrfToken=document.querySelector('meta[name="csrf-token"]').content;
+const csrfToken=window.csrfToken||document.querySelector('meta[name="csrf-token"]').content;
 const dtLang={search:"Tìm:",lengthMenu:"Hiện _MENU_",info:"_START_-_END_/_TOTAL_",infoEmpty:"Trống",zeroRecords:"Không có",paginate:{next:"›",previous:"‹"}};
 let xuatDT, nhapDT;
 
@@ -375,15 +375,21 @@ $(document).ready(function(){loadData();});
 // ====== RESET DỮ LIỆU ======
 let resetMode = 'thang';
 
-const fpResetMonth = flatpickr('#resetMonthPicker', {
-    locale: 'vn',
-    plugins: [new monthSelectPlugin({shorthand: true, dateFormat: 'm/Y', altFormat: 'F Y'})],
-    defaultDate: new Date(),
-});
-
-const fpResetDate = flatpickr('#resetDatePicker', {
-    dateFormat: 'd/m/Y', locale: 'vn', defaultDate: new Date(),
-});
+let fpResetMonth, fpResetDate;
+setTimeout(function() {
+    if (document.getElementById('resetMonthPicker')) {
+        fpResetMonth = flatpickr('#resetMonthPicker', {
+            locale: 'vn',
+            plugins: [new monthSelectPlugin({shorthand: true, dateFormat: 'm/Y', altFormat: 'F Y'})],
+            defaultDate: new Date(),
+        });
+    }
+    if (document.getElementById('resetDatePicker')) {
+        fpResetDate = flatpickr('#resetDatePicker', {
+            dateFormat: 'd/m/Y', locale: 'vn', defaultDate: new Date(),
+        });
+    }
+}, 0);
 
 function switchResetMode(mode) {
     resetMode = mode;
