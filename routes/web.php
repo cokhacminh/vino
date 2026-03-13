@@ -78,6 +78,7 @@ Route::middleware('auth')->group(function () {
         Route::get('/data', [TransferOrderController::class, 'getData'])->name('data');
         Route::post('/save-settings', [TransferOrderController::class, 'saveSettings'])->name('saveSettings');
         Route::post('/transfer', [TransferOrderController::class, 'transferOrder'])->name('transfer');
+        Route::get('/success-orders', [TransferOrderController::class, 'getSuccessOrders'])->name('successOrders');
     });
 
     // 7. Reconciliation - ĐỐI CHIẾU ĐƠN HÀNG

@@ -95,6 +95,45 @@ class TransferOrderController extends Controller
         ]);
     }
 
+    public function getSuccessOrders()
+    {
+        $curl = curl_init();
+        curl_setopt_array($curl, [
+            CURLOPT_URL => 'https://thuysansg.com/webhook/don-thanh-cong',
+            CURLOPT_RETURNTRANSFER => true,
+            CURLOPT_ENCODING => '',
+            CURLOPT_MAXREDIRS => 10,
+            CURLOPT_TIMEOUT => 30,
+            CURLOPT_FOLLOWLOCATION => true,
+            CURLOPT_HTTP_VERSION => CURL_HTTP_VERSION_1_1,
+            CURLOPT_CUSTOMREQUEST => 'GET',
+        ]);
+        $response = curl_exec($curl);
+        $httpCode = curl_getinfo($curl, CURLINFO_HTTP_CODE);
+        curl_close($curl);
+
+        if ($httpCode !== 200 || !$response) {
+            return response()->json(['orders' => [], 'error' => 'Không thể kết nối']);
+        }
+
+        $orders = json_decode($response, false) ?: [];
+
+        if (count($orders) > 0) {
+            $maDHList = array_map(fn($o) => $o->MaDH ?? '', (array) $orders);
+            $maDHList = array_filter($maDHList);
+            $existingMaDH = DB::table('donhang')->whereIn('MaDH', $maDHList)->pluck('MaDH')->toArray();
+
+            foreach ($orders as $order) {
+                $order->existsInDb = in_array($order->MaDH ?? '', $existingMaDH);
+            }
+        }
+
+        return response()->json([
+            'orders' => $orders,
+            'date' => now()->format('d/m/Y'),
+        ]);
+    }
+
     public function saveSettings(Request $request)
     {
         $settings = $request->input('settings');

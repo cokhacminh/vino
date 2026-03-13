@@ -67,6 +67,7 @@
             <button class="to-btn to-btn-gray" onclick="navDate(-1)">Prev</button>
             <button class="to-btn to-btn-gray" onclick="navDate(1)">Next</button>
             <button class="to-btn to-btn-blue" onclick="document.getElementById('settingsModal').classList.add('show')" title="Cài đặt thuật toán"><i class="fa-solid fa-gear"></i> Cài Đặt</button>
+            <button class="to-btn" style="background:#059669;color:#fff" onclick="loadSuccessOrders()" id="btnSuccess"><i class="fa-solid fa-circle-check"></i> Đơn TC Hôm Nay</button>
         </div>
         <div class="to-card-body">
             <div class="to-loading" id="toLoading"><i class="fa-solid fa-spinner fa-spin fa-2x"></i></div>
@@ -392,6 +393,36 @@ function loadData() {
         .catch(() => { loading.style.display = 'none'; });
 }
 
+function loadSuccessOrders() {
+    const loading = document.getElementById('toLoading');
+    const btn = document.getElementById('btnSuccess');
+    loading.style.display = 'block';
+    btn.disabled = true;
+    btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Đang tải...';
+    document.getElementById('transferLog').style.display = 'none';
+    document.getElementById('transferLog').innerHTML = '';
+
+    fetch('/transfer-orders/success-orders')
+        .then(r => r.json())
+        .then(data => {
+            loading.style.display = 'none';
+            btn.disabled = false;
+            btn.innerHTML = '<i class="fa-solid fa-circle-check"></i> Đơn TC Hôm Nay';
+            currentOrders = data.orders || [];
+            const { results } = autoSelectProducts(currentOrders);
+            currentResults = results;
+            renderOrders(currentOrders, currentResults);
+            renderTongXuat(currentResults);
+            updateBulkButton();
+        })
+        .catch(() => {
+            loading.style.display = 'none';
+            btn.disabled = false;
+            btn.innerHTML = '<i class="fa-solid fa-circle-check"></i> Đơn TC Hôm Nay';
+            alert('Lỗi kết nối đến server');
+        });
+}
+
 function updateBulkButton() {
     let transferable = 0, noProducts = 0;
     currentOrders.forEach((o, i) => {
@@ -421,7 +452,7 @@ function renderOrders(orders, results) {
         const selected = results[i] || [];
         let spHtml, spTotalFmt = '';
         if (isExisting) {
-            spHtml = '<span style="color:#059669;font-weight:600"><i class="fa-solid fa-check-circle"></i> Đã xử lý</span>';
+            spHtml = '<span style="color:#059669;font-weight:600"><i class="fa-solid fa-check-circle"></i> Đã chuyển đơn rồi</span>';
         } else if (selected.length) {
             spHtml = selected.map(s => `${s.TenSP} x ${s.SoLuong}`).join('<br>');
             const spTotal = selected.reduce((sum, s) => sum + s.GiaBan * s.SoLuong, 0);
@@ -431,7 +462,7 @@ function renderOrders(orders, results) {
         }
         const rowStyle = isExisting ? 'background:#f0fdf4' : '';
         const actionHtml = isExisting
-            ? '<span style="color:#059669;font-size:11px"><i class="fa-solid fa-check"></i> Đã chuyển</span>'
+            ? ''
             : (selected.length
                 ? `<button class="to-btn to-btn-green btn-transfer" onclick="transferSingle(${i})"><i class="fa-solid fa-paper-plane"></i> Chuyển Đơn</button>`
                 : '<span style="color:#94a3b8;font-size:11px">—</span>');
