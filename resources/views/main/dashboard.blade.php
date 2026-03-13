@@ -108,10 +108,11 @@
             <div class="section-title"><i class="fa-solid fa-circle-check" style="color:#059669"></i> Đơn Giao Thành Công Hôm Nay</div>
             <div class="table-scroll" style="max-height:395px">
             <table class="data-table">
-                <thead><tr><th>Mã Đơn</th><th style="text-align:right">Tổng Tiền</th><th style="text-align:center">Trạng Thái</th></tr></thead>
+                <thead><tr><th>STT</th><th>Mã Đơn</th><th style="text-align:right">Tổng Tiền</th><th style="text-align:center">Trạng Thái</th></tr></thead>
                 <tbody>
                     @forelse($successOrders as $o)
                     <tr>
+                        <td>{{ $loop->iteration }}</td>
                         <td><code style="color:#1e40af;background:#dbeafe;padding:2px 8px;border-radius:6px">{{ $o->MaDH }}</code></td>
                         <td style="text-align:right;font-weight:600">{{ $o->TongTien }}đ</td>
                         <td style="text-align:center">
@@ -123,7 +124,7 @@
                         </td>
                     </tr>
                     @empty
-                    <tr><td colspan="3" style="text-align:center;color:var(--text-muted)">Chưa có dữ liệu</td></tr>
+                    <tr><td colspan="4" style="text-align:center;color:var(--text-muted)">Chưa có dữ liệu</td></tr>
                     @endforelse
                 </tbody>
             </table>
