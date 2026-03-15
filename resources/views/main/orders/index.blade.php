@@ -151,7 +151,8 @@ code{color:var(--primary);background:var(--primary-bg);padding:2px 8px;border-ra
     <div id="eoItemsList"></div>
     <div style="text-align:right;font-weight:700;font-size:14px;color:#1e40af;margin-top:8px">Tổng giá trị SP: <span id="eoSPTotal">0</span></div>
 </div>
-<button type="button" class="btn-primary" onclick="saveOrderEdit()" style="width:100%;justify-content:center;background:linear-gradient(135deg,#059669,#10b981)"><i class="fa-solid fa-save"></i> Lưu</button>
+<button type="button" class="btn-primary" id="btnSaveOrder" onclick="saveOrderEdit()" style="width:100%;justify-content:center;background:linear-gradient(135deg,#059669,#10b981)" disabled><i class="fa-solid fa-save"></i> Lưu</button>
+<div id="eoWarning" style="text-align:center;color:#dc2626;font-size:12px;margin-top:6px;font-weight:600">Tổng giá trị SP phải ≥ Tổng Tiền đơn hàng</div>
 </form></div></div>
 @endsection
 @push('scripts')
@@ -278,6 +279,10 @@ function calcEditTotal() {
     document.getElementById('eoSPTotal').textContent = total.toLocaleString('vi-VN') + '\u0111';
     const giamGia = total > editOrderTongTien ? (total - editOrderTongTien) : 0;
     document.getElementById('eoGG').value = giamGia > 0 ? giamGia.toLocaleString('vi-VN')+'\u0111' : '0';
+    // Enable/disable save button
+    const canSave = total >= editOrderTongTien && editOrderTongTien > 0;
+    document.getElementById('btnSaveOrder').disabled = !canSave;
+    document.getElementById('eoWarning').style.display = canSave ? 'none' : 'block';
 }
 
 function saveOrderEdit(){
