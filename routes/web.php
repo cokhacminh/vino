@@ -79,6 +79,7 @@ Route::middleware('auth')->group(function () {
         Route::post('/save-settings', [TransferOrderController::class, 'saveSettings'])->name('saveSettings');
         Route::post('/transfer', [TransferOrderController::class, 'transferOrder'])->name('transfer');
         Route::get('/success-orders', [TransferOrderController::class, 'getSuccessOrders'])->name('successOrders');
+        Route::get('/don-chanh', [TransferOrderController::class, 'getDonChanh'])->name('donChanh');
     });
 
     // 7. Reconciliation - ĐỐI CHIẾU ĐƠN HÀNG

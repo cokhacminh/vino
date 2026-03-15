@@ -78,6 +78,7 @@
             <button class="to-btn to-btn-gray" onclick="navDate(1)">Next</button>
             <button class="to-btn to-btn-blue" onclick="document.getElementById('settingsModal').classList.add('show')" title="Cài đặt thuật toán"><i class="fa-solid fa-gear"></i> Cài Đặt</button>
             <button class="to-btn" style="background:#059669;color:#fff" onclick="loadSuccessOrders()" id="btnSuccess"><i class="fa-solid fa-circle-check"></i> Đơn TC Hôm Nay</button>
+            <button class="to-btn" style="background:#7c3aed;color:#fff" onclick="loadDonChanh()" id="btnDonChanh"><i class="fa-solid fa-truck-ramp-box"></i> Đơn Chành</button>
         </div>
         <div class="to-card-body">
             <div class="to-loading" id="toLoading"><i class="fa-solid fa-spinner fa-spin fa-2x"></i></div>
@@ -410,6 +411,7 @@ function selectForOrder(stock, targetMin, targetMax, maxQty, minDistinct, priori
 // ====== LOAD & RENDER ======
 let currentOrders = [];
 let currentResults = [];
+let isDonChanh = false;
 
 function loadData() {
     const date = document.getElementById('toDatePicker').value;
@@ -417,6 +419,7 @@ function loadData() {
     loading.style.display = 'block';
     document.getElementById('transferLog').style.display = 'none';
     document.getElementById('transferLog').innerHTML = '';
+    isDonChanh = false;
 
     fetch(`/transfer-orders/data?date=${encodeURIComponent(date)}`)
         .then(r => r.json())
@@ -440,6 +443,7 @@ function loadSuccessOrders() {
     btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Đang tải...';
     document.getElementById('transferLog').style.display = 'none';
     document.getElementById('transferLog').innerHTML = '';
+    isDonChanh = false;
 
     fetch('/transfer-orders/success-orders')
         .then(r => r.json())
@@ -458,6 +462,40 @@ function loadSuccessOrders() {
             loading.style.display = 'none';
             btn.disabled = false;
             btn.innerHTML = '<i class="fa-solid fa-circle-check"></i> Đơn TC Hôm Nay';
+            alert('Lỗi kết nối đến server');
+        });
+}
+
+function loadDonChanh() {
+    const loading = document.getElementById('toLoading');
+    const btn = document.getElementById('btnDonChanh');
+    loading.style.display = 'block';
+    btn.disabled = true;
+    btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Đang tải...';
+    document.getElementById('transferLog').style.display = 'none';
+    document.getElementById('transferLog').innerHTML = '';
+
+    const date = document.getElementById('toDatePicker').value;
+    fetch(`/transfer-orders/don-chanh?date=${encodeURIComponent(date)}`)
+        .then(r => r.json())
+        .then(data => {
+            loading.style.display = 'none';
+            btn.disabled = false;
+            btn.innerHTML = '<i class="fa-solid fa-truck-ramp-box"></i> Đơn Chành';
+            currentOrders = data.orders || [];
+            const { results } = autoSelectProducts(currentOrders);
+            currentResults = results;
+            isDonChanh = true;
+            renderOrders(currentOrders, currentResults);
+            renderTongXuat(currentResults);
+            updateBulkButton();
+            // Disable nút Chuyển Toàn Bộ cho đơn chành
+            document.getElementById('btnBulkTransfer').disabled = true;
+        })
+        .catch(() => {
+            loading.style.display = 'none';
+            btn.disabled = false;
+            btn.innerHTML = '<i class="fa-solid fa-truck-ramp-box"></i> Đơn Chành';
             alert('Lỗi kết nối đến server');
         });
 }
@@ -484,7 +522,7 @@ function renderOrders(orders, results) {
         return;
     }
     tbody.innerHTML = orders.map((o, i) => {
-        const ngay = o.Ngay ? new Date(o.Ngay).toLocaleDateString('vi-VN') : '';
+        const ngay = isDonChanh ? '<span style="background:#7c3aed;color:#fff;padding:2px 8px;border-radius:4px;font-size:11px;font-weight:600">Đơn Chành</span>' : (o.Ngay ? new Date(o.Ngay).toLocaleDateString('vi-VN') : '');
         const tien = parseAmount(o.TongTien);
         const tienFmt = tien.toLocaleString('vi-VN');
         const isExisting = o.existsInDb;
