@@ -44,6 +44,7 @@
 .to-modal-body .setting-row input{width:100px;padding:6px 10px;border:1px solid #d1d5db;border-radius:6px;font-size:13px;text-align:center}
 .to-modal-footer{padding:12px 16px;border-top:1px solid #e2e8f0;text-align:right}
 .to-btn-green{background:#059669;color:#fff;font-size:11px;padding:4px 10px}.to-btn-green:hover{background:#047857}
+.to-btn-edit{background:#f59e0b;color:#fff;font-size:11px;padding:4px 10px;border:none;border-radius:6px;font-weight:600;cursor:pointer;transition:all .15s;margin-left:4px}.to-btn-edit:hover{background:#d97706}
 .to-btn-bulk{background:#2563eb;color:#fff;padding:10px 16px;border:none;border-radius:8px;font-size:14px;font-weight:700;cursor:pointer;width:100%;margin-top:10px;transition:all .15s}
 .to-btn-bulk:hover{background:#1d4ed8}
 .to-btn-bulk:disabled{background:#94a3b8;cursor:not-allowed}
@@ -52,6 +53,15 @@
 .to-log-item{padding:3px 0;border-bottom:1px solid #f1f5f9}
 .to-log-ok{color:#059669}.to-log-err{color:#dc2626}
 .fmt-money{width:150px;padding:4px 20px;border-radius:4px;border:1px solid #bab6b6}
+.edit-modal-table{width:100%;border-collapse:collapse;font-size:13px;margin-bottom:10px}
+.edit-modal-table th{background:#f59e0b;color:#fff;padding:8px 10px;text-align:center;font-size:12px;font-weight:600;border:1px solid #e2e8f0}
+.edit-modal-table td{padding:6px 8px;text-align:center;border:1px solid #e2e8f0;vertical-align:middle}
+.edit-modal-table select{width:100%;padding:5px 8px;border:1px solid #d1d5db;border-radius:5px;font-size:13px;box-sizing:border-box}
+.edit-modal-table input[type=number]{width:80px;padding:5px 8px;border:1px solid #d1d5db;border-radius:5px;font-size:13px;text-align:center;box-sizing:border-box}
+.to-btn-add-row{background:#2563eb;color:#fff;border:none;border-radius:6px;padding:6px 14px;font-size:12px;font-weight:600;cursor:pointer;margin-top:6px;transition:all .15s}.to-btn-add-row:hover{background:#1d4ed8}
+.to-btn-del-row{background:#dc2626;color:#fff;border:none;border-radius:50%;width:24px;height:24px;font-size:13px;cursor:pointer;display:inline-flex;align-items:center;justify-content:center;transition:all .15s}.to-btn-del-row:hover{background:#b91c1c}
+.edit-stock-hint{font-size:11px;color:#64748b;margin-top:2px}
+.edit-total-row{font-weight:700;font-size:14px;text-align:right;padding:10px 0;color:#1e40af}
 @media(max-width:1024px){.to-grid{grid-template-columns:1fr}}
 </style>
 @endpush
@@ -120,6 +130,35 @@
             </table>
         </div>
     </div>
+</div>
+
+{{-- MODAL SỬA SẢN PHẨM ĐƠN HÀNG --}}
+<div class="to-modal-overlay" id="editModal" onclick="if(event.target===this)this.classList.remove('show')">
+<div class="to-modal" style="width:700px">
+    <div class="to-modal-hdr" style="background:#f59e0b">
+        <span><i class="fa-solid fa-pen-to-square"></i> Sửa Sản Phẩm — Đơn <code id="editMaDH" style="background:rgba(255,255,255,.2);padding:2px 8px;border-radius:4px"></code></span>
+        <button onclick="this.closest('.to-modal-overlay').classList.remove('show')">&times;</button>
+    </div>
+    <div class="to-modal-body">
+        <table class="edit-modal-table">
+            <thead><tr>
+                <th style="width:5%">#</th>
+                <th style="width:40%">Sản Phẩm</th>
+                <th style="width:15%">SL</th>
+                <th style="width:15%">Giá Bán</th>
+                <th style="width:15%">Thành Tiền</th>
+                <th style="width:10%">Xóa</th>
+            </tr></thead>
+            <tbody id="editRowsBody"></tbody>
+        </table>
+        <button class="to-btn-add-row" onclick="addEditRow()"><i class="fa-solid fa-plus"></i> Thêm sản phẩm</button>
+        <div class="edit-total-row">Tổng giá trị SP: <span id="editTotalValue">0</span> — Tổng tiền đơn: <span id="editOrderTotal">0</span></div>
+    </div>
+    <div class="to-modal-footer">
+        <button class="to-btn to-btn-gray" onclick="document.getElementById('editModal').classList.remove('show')" style="margin-right:8px">Hủy</button>
+        <button class="to-btn to-btn-blue" onclick="saveEdit()"><i class="fa-solid fa-check"></i> Lưu thay đổi</button>
+    </div>
+</div>
 </div>
 
 {{-- MODAL CÀI ĐẶT THUẬT TOÁN --}}
@@ -461,11 +500,12 @@ function renderOrders(orders, results) {
             spHtml = '<span style="color:#94a3b8">—</span>';
         }
         const rowStyle = isExisting ? 'background:#f0fdf4' : '';
+        const editBtn = `<button class="to-btn to-btn-edit" onclick="openEditModal(${i})"><i class="fa-solid fa-pen-to-square"></i> Sửa</button>`;
         const actionHtml = isExisting
             ? ''
             : (selected.length
-                ? `<button class="to-btn to-btn-green btn-transfer" onclick="transferSingle(${i})"><i class="fa-solid fa-paper-plane"></i> Chuyển Đơn</button>`
-                : '<span style="color:#94a3b8;font-size:11px">—</span>');
+                ? `<button class="to-btn to-btn-green btn-transfer" onclick="transferSingle(${i})"><i class="fa-solid fa-paper-plane"></i> Chuyển Đơn</button>${editBtn}`
+                : `<span style="color:#94a3b8;font-size:11px">—</span>${editBtn}`);
         return `<tr style="${rowStyle}" id="orderRow${i}">
             <td>${i + 1}</td>
             <td>${ngay}</td>
@@ -598,6 +638,165 @@ async function bulkTransfer() {
 
     btn.innerHTML = `<i class="fa-solid fa-list-check"></i> HOÀN TẤT (${okCount} thành công, ${errCount} lỗi)`;
     updateBulkButton();
+}
+
+// ====== SỬA SẢN PHẨM ĐƠN HÀNG ======
+let editingIdx = -1;
+
+function getAvailableStock(excludeIdx) {
+    // Tính tồn kho còn lại sau khi trừ các đơn khác đã chọn
+    const stock = INVENTORY_ORIGINAL.map(p => ({...p}));
+    currentResults.forEach((items, i) => {
+        if (i === excludeIdx || !items) return;
+        for (const sp of items) {
+            const s = stock.find(x => x.MaSP === sp.MaSP);
+            if (s) s.SoLuong = Math.max(0, s.SoLuong - sp.SoLuong);
+        }
+    });
+    return stock.filter(p => p.SoLuong > 0 && p.GiaBan > 0);
+}
+
+function openEditModal(idx) {
+    editingIdx = idx;
+    const order = currentOrders[idx];
+    const selected = currentResults[idx] || [];
+    document.getElementById('editMaDH').textContent = order.MaDH;
+    document.getElementById('editOrderTotal').textContent = parseAmount(order.TongTien).toLocaleString('vi-VN');
+    renderEditRows(selected);
+    document.getElementById('editModal').classList.add('show');
+}
+
+function renderEditRows(items) {
+    const tbody = document.getElementById('editRowsBody');
+    const available = getAvailableStock(editingIdx);
+    // Track which MaSP are currently used in each row
+    const usedMaSPs = items.map(it => it.MaSP);
+
+    tbody.innerHTML = items.map((sp, ri) => {
+        // Build dropdown options: current SP + all available not used in other rows
+        let options = '<option value="">-- Chọn SP --</option>';
+        // Combine available stock + current item (it might have been allocated already)
+        const allOptions = [];
+        for (const av of available) {
+            // calculate max qty for this product considering current edit rows
+            let usedInOtherRows = 0;
+            items.forEach((it, oi) => {
+                if (oi !== ri && it.MaSP === av.MaSP) usedInOtherRows += it.SoLuong;
+            });
+            const maxQty = av.SoLuong - usedInOtherRows;
+            if (maxQty > 0 || av.MaSP === sp.MaSP) {
+                allOptions.push(av);
+            }
+        }
+        // Also add the currently selected product if not in available list
+        if (sp.MaSP && !allOptions.find(a => a.MaSP === sp.MaSP)) {
+            const orig = INVENTORY_ORIGINAL.find(p => p.MaSP === sp.MaSP);
+            if (orig) allOptions.unshift({...orig});
+        }
+        for (const opt of allOptions) {
+            const sel = opt.MaSP === sp.MaSP ? 'selected' : '';
+            // Show available quantity in dropdown
+            let avInStock = opt.SoLuong;
+            // For available stock, find in the computed available
+            const avItem = available.find(a => a.MaSP === opt.MaSP);
+            if (avItem) avInStock = avItem.SoLuong;
+            options += `<option value="${opt.MaSP}" data-gia="${opt.GiaBan}" data-stock="${avInStock}" ${sel}>${opt.TenSP} (tồn: ${avInStock})</option>`;
+        }
+
+        const thanhTien = (sp.GiaBan || 0) * (sp.SoLuong || 0);
+        // Calculate max for current selection
+        let maxForCurrent = sp.SoLuong || 1;
+        const avCurrent = available.find(a => a.MaSP === sp.MaSP);
+        if (avCurrent) {
+            let usedElsewhere = 0;
+            items.forEach((it, oi) => { if (oi !== ri && it.MaSP === sp.MaSP) usedElsewhere += it.SoLuong; });
+            maxForCurrent = avCurrent.SoLuong - usedElsewhere;
+        }
+
+        return `<tr>
+            <td>${ri + 1}</td>
+            <td><select onchange="onEditProductChange(this, ${ri})">${options}</select></td>
+            <td><input type="number" value="${sp.SoLuong || 1}" min="1" max="${maxForCurrent}" onchange="onEditQtyChange(this, ${ri})" oninput="onEditQtyChange(this, ${ri})"></td>
+            <td>${(sp.GiaBan || 0).toLocaleString('vi-VN')}</td>
+            <td style="font-weight:600">${thanhTien.toLocaleString('vi-VN')}</td>
+            <td><button class="to-btn-del-row" onclick="removeEditRow(${ri})">&times;</button></td>
+        </tr>`;
+    }).join('');
+    updateEditTotal();
+}
+
+function onEditProductChange(sel, rowIdx) {
+    const items = getEditItems();
+    const opt = sel.options[sel.selectedIndex];
+    if (!opt || !opt.value) {
+        items[rowIdx] = { MaSP: '', TenSP: '', GiaBan: 0, SoLuong: 0 };
+    } else {
+        const stock = parseInt(opt.dataset.stock) || 0;
+        // Calculate used in other rows for same product
+        let usedElsewhere = 0;
+        items.forEach((it, oi) => { if (oi !== rowIdx && it.MaSP === opt.value) usedElsewhere += it.SoLuong; });
+        const maxQty = Math.max(1, stock - usedElsewhere);
+        items[rowIdx] = {
+            MaSP: opt.value,
+            TenSP: opt.textContent.replace(/\s*\(tồn:.*\)/, ''),
+            GiaBan: parseInt(opt.dataset.gia) || 0,
+            SoLuong: Math.min(items[rowIdx].SoLuong || 1, maxQty),
+        };
+    }
+    renderEditRows(items);
+}
+
+function onEditQtyChange(input, rowIdx) {
+    const max = parseInt(input.max) || 1;
+    let val = parseInt(input.value) || 1;
+    if (val < 1) val = 1;
+    if (val > max) val = max;
+    input.value = val;
+    updateEditTotal();
+}
+
+function addEditRow() {
+    const items = getEditItems();
+    items.push({ MaSP: '', TenSP: '', GiaBan: 0, SoLuong: 1 });
+    renderEditRows(items);
+}
+
+function removeEditRow(rowIdx) {
+    const items = getEditItems();
+    items.splice(rowIdx, 1);
+    renderEditRows(items);
+}
+
+function getEditItems() {
+    const rows = document.querySelectorAll('#editRowsBody tr');
+    const items = [];
+    rows.forEach(row => {
+        const sel = row.querySelector('select');
+        const qtyInput = row.querySelector('input[type=number]');
+        const opt = sel ? sel.options[sel.selectedIndex] : null;
+        items.push({
+            MaSP: sel ? sel.value : '',
+            TenSP: (opt && opt.value) ? opt.textContent.replace(/\s*\(tồn:.*\)/, '') : '',
+            GiaBan: (opt && opt.value) ? (parseInt(opt.dataset.gia) || 0) : 0,
+            SoLuong: qtyInput ? (parseInt(qtyInput.value) || 1) : 1,
+        });
+    });
+    return items;
+}
+
+function updateEditTotal() {
+    const items = getEditItems();
+    const total = items.reduce((s, it) => s + (it.GiaBan * it.SoLuong), 0);
+    document.getElementById('editTotalValue').textContent = total.toLocaleString('vi-VN');
+}
+
+function saveEdit() {
+    const items = getEditItems().filter(it => it.MaSP && it.SoLuong > 0);
+    currentResults[editingIdx] = items;
+    renderOrders(currentOrders, currentResults);
+    renderTongXuat(currentResults);
+    updateBulkButton();
+    document.getElementById('editModal').classList.remove('show');
 }
 
 document.addEventListener('DOMContentLoaded', loadData);
