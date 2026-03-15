@@ -130,7 +130,10 @@ class OrderController extends Controller
             ->select('ct.*', 'sp.TenSP')
             ->get();
 
+        $products = DB::table('sanpham')->get(['MaSP', 'TenSP', 'GiaBan_SG', 'GiaNhap']);
+
         $order->items = $items;
+        $order->products = $products;
         return response()->json($order);
     }
 
@@ -139,19 +142,68 @@ class OrderController extends Controller
         $order = DB::table('donhang')->where('id', $id)->first();
         if (!$order) return response()->json(['success' => false, 'message' => 'Không tìm thấy đơn hàng']);
 
-        DB::table('donhang')->where('id', $id)->update([
-            'TongTien' => $request->input('TongTien', $order->TongTien),
-            'GiamGia' => $request->input('GiamGia', $order->GiamGia),
-            'DonHang' => $request->input('DonHang', $order->DonHang),
-        ]);
+        DB::beginTransaction();
+        try {
+            // 1. Bù lại tồn kho từ sản phẩm cũ
+            $oldItems = DB::table('chitietdonhang')->where('MaDH', $order->MaDH)->get();
+            foreach ($oldItems as $old) {
+                DB::table('quanlysanpham')
+                    ->where('MaSP', $old->MaSP)
+                    ->increment('SoLuong', $old->SoLuong);
+            }
 
-        DB::table('khachhang')->where('MaDH', $order->MaDH)->update([
-            'TenKH' => $request->input('TenKH', ''),
-            'SoDienThoai' => $request->input('SoDienThoai', ''),
-            'DiaChi' => $request->input('DiaChi', ''),
-        ]);
+            // 2. Xóa chi tiết đơn hàng cũ
+            DB::table('chitietdonhang')->where('MaDH', $order->MaDH)->delete();
 
-        return response()->json(['success' => true, 'message' => 'Cập nhật thành công']);
+            // 3. Thêm sản phẩm mới + trừ tồn kho
+            $newItems = $request->input('items', []);
+            $tongGiaTriSP = 0;
+            foreach ($newItems as $item) {
+                if (empty($item['MaSP'])) continue;
+                $sp = DB::table('sanpham')->where('MaSP', $item['MaSP'])->first();
+                $giaBan = !empty($item['GiaBan']) ? (int) $item['GiaBan'] : ($sp->GiaBan_SG ?? 0);
+                $soLuong = (int) ($item['SoLuong'] ?? 1);
+
+                DB::table('chitietdonhang')->insert([
+                    'MaDH' => $order->MaDH,
+                    'MaSP' => $item['MaSP'],
+                    'SoLuong' => $soLuong,
+                    'GiaNhap' => $sp->GiaNhap ?? 0,
+                    'GiaBan' => $giaBan,
+                    'NgayBan' => $order->Ngay,
+                ]);
+
+                $tongGiaTriSP += $giaBan * $soLuong;
+
+                // Trừ tồn kho
+                DB::table('quanlysanpham')
+                    ->where('MaSP', $item['MaSP'])
+                    ->decrement('SoLuong', $soLuong);
+            }
+
+            // 4. Tính giảm giá: nếu tổng SP > TongTien -> chênh lệch = GiamGia
+            $tongTien = (int) $order->TongTien;
+            $giamGia = $tongGiaTriSP > $tongTien ? ($tongGiaTriSP - $tongTien) : 0;
+
+            // 5. Cập nhật đơn hàng (TongTien không đổi)
+            DB::table('donhang')->where('id', $id)->update([
+                'GiamGia' => $giamGia,
+                'DonHang' => $request->input('DonHang', $order->DonHang),
+            ]);
+
+            // 6. Cập nhật thông tin khách hàng
+            DB::table('khachhang')->where('MaDH', $order->MaDH)->update([
+                'TenKH' => $request->input('TenKH', ''),
+                'SoDienThoai' => $request->input('SoDienThoai', ''),
+                'DiaChi' => $request->input('DiaChi', ''),
+            ]);
+
+            DB::commit();
+            return response()->json(['success' => true, 'message' => 'Cập nhật thành công']);
+        } catch (\Exception $e) {
+            DB::rollBack();
+            return response()->json(['success' => false, 'message' => 'Lỗi: ' . $e->getMessage()]);
+        }
     }
 
     public function destroy($id)

@@ -138,8 +138,19 @@ code{color:var(--primary);background:var(--primary-bg);padding:2px 8px;border-ra
 <form id="editOrderForm"><input type="hidden" id="editOrderId">
 <div class="form-row"><div class="form-group"><label>Tên KH</label><input type="text" id="eoTenKH" name="TenKH" class="form-input"></div><div class="form-group"><label>SĐT</label><input type="text" id="eoSoDT" name="SoDienThoai" class="form-input"></div></div>
 <div class="form-group"><label>Địa Chỉ</label><input type="text" id="eoDC" name="DiaChi" class="form-input"></div>
-<div class="form-row-3"><div class="form-group"><label>Tổng Tiền</label><input type="number" id="eoTT" name="TongTien" class="form-input"></div><div class="form-group"><label>Giảm Giá</label><input type="number" id="eoGG" name="GiamGia" class="form-input"></div><div class="form-group"><label>Ghi Chú</label><input type="text" id="eoDH" name="DonHang" class="form-input"></div></div>
-<div id="eoItemsWrap" style="margin:12px 0"><div style="font-weight:600;font-size:13px;color:var(--text-secondary);margin-bottom:6px"><i class="fa-solid fa-box"></i> Sản phẩm trong đơn</div><table class="display" id="eoItemsTable" style="width:100%"><thead><tr><th>Mã SP</th><th>Tên SP</th><th>SL</th><th>Giá Bán</th></tr></thead><tbody></tbody></table></div>
+<div class="form-row-3">
+    <div class="form-group"><label>Tổng Tiền (đơn)</label><input type="text" id="eoTT" class="form-input" readonly style="background:#f1f5f9;font-weight:700;color:#059669"></div>
+    <div class="form-group"><label>Giảm Giá</label><input type="text" id="eoGG" class="form-input" readonly style="background:#f1f5f9;font-weight:700;color:#dc2626"></div>
+    <div class="form-group"><label>Ghi Chú</label><input type="text" id="eoDH" name="DonHang" class="form-input"></div>
+</div>
+<div id="eoItemsWrap" style="margin:12px 0">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px">
+        <span style="font-weight:600;font-size:13px;color:var(--text-secondary)"><i class="fa-solid fa-box"></i> Sản phẩm trong đơn</span>
+        <button type="button" class="btn-primary btn-sm" onclick="addEditItem()" style="font-size:11px"><i class="fa-solid fa-plus"></i> Thêm SP</button>
+    </div>
+    <div id="eoItemsList"></div>
+    <div style="text-align:right;font-weight:700;font-size:14px;color:#1e40af;margin-top:8px">Tổng giá trị SP: <span id="eoSPTotal">0</span></div>
+</div>
 <button type="button" class="btn-primary" onclick="saveOrderEdit()" style="width:100%;justify-content:center;background:linear-gradient(135deg,#059669,#10b981)"><i class="fa-solid fa-save"></i> Lưu</button>
 </form></div></div>
 @endsection
@@ -183,36 +194,125 @@ function exportExcel(){
 
 function addItem(){const h=`<div class="item-row"><select name="items[${idx}][MaSP]" required style="flex:2"><option value="">Chọn SP</option>@foreach($products as $p)<option value="{{ $p->MaSP }}">{{ $p->MaSP }} - {{ $p->TenSP }}</option>@endforeach</select><input type="number" name="items[${idx}][SoLuong]" placeholder="SL" value="1" min="1" step="0.1" required style="width:60px"><input type="number" name="items[${idx}][GiaBan]" placeholder="Giá" style="width:100px"><button type="button" class="item-remove" onclick="this.closest('.item-row').remove()">×</button></div>`;document.getElementById('itemList').insertAdjacentHTML('beforeend',h);idx++}
 
+let editProducts = [];
+let editOrderTongTien = 0;
+
 function editOrder(id){
     fetch(`/orders/${id}/edit-data`).then(r=>r.json()).then(o=>{
         document.getElementById('editOrderId').value=id;
         document.getElementById('eoTenKH').value=o.TenKH||'';
         document.getElementById('eoSoDT').value=o.SoDienThoai||'';
         document.getElementById('eoDC').value=o.DiaChi||'';
-        document.getElementById('eoTT').value=o.TongTien||0;
-        document.getElementById('eoGG').value=o.GiamGia||0;
+        editOrderTongTien = Number(o.TongTien||0);
+        document.getElementById('eoTT').value=editOrderTongTien.toLocaleString('vi-VN')+'\u0111';
         document.getElementById('eoDH').value=o.DonHang||'';
-        const tbody=document.querySelector('#eoItemsTable tbody');
-        tbody.innerHTML='';
-        if(o.items&&o.items.length){
-            o.items.forEach(it=>{
-                tbody.innerHTML+=`<tr><td><code>${it.MaSP}</code></td><td>${it.TenSP||''}</td><td>${Number(it.SoLuong||0).toLocaleString('vi-VN')}</td><td style="color:#059669;font-weight:600">${Number(it.GiaBan||0).toLocaleString('vi-VN')}đ</td></tr>`;
+        editProducts = o.products || [];
+
+        const list = document.getElementById('eoItemsList');
+        list.innerHTML = '';
+        if(o.items && o.items.length){
+            o.items.forEach((it, i) => {
+                addEditItemRow(it.MaSP, Number(it.SoLuong||1), Number(it.GiaBan||0));
             });
-        } else {
-            tbody.innerHTML='<tr><td colspan="4" style="text-align:center;color:#94a3b8">Không có sản phẩm</td></tr>';
         }
+        calcEditTotal();
         document.getElementById('editOrderModal').classList.add('show');
     })
 }
 
-function saveOrderEdit(){
-    const id=document.getElementById('editOrderId').value;
-    const fd=new FormData(document.getElementById('editOrderForm'));
-    const d={};fd.forEach((v,k)=>d[k]=v);
-    fetch(`/orders/${id}`,{method:'PUT',headers:{'Content-Type':'application/json','X-CSRF-TOKEN':csrfToken},body:JSON.stringify(d)}).then(r=>r.json()).then(r=>{if(r.success){alert(r.message);location.reload()}else alert(r.message)})
+function buildProductOptions(selectedMaSP) {
+    let opts = '<option value="">Ch\u1ecdn SP</option>';
+    editProducts.forEach(p => {
+        const sel = p.MaSP === selectedMaSP ? 'selected' : '';
+        opts += `<option value="${p.MaSP}" data-gia="${p.GiaBan_SG||0}" ${sel}>${p.MaSP} - ${p.TenSP}</option>`;
+    });
+    return opts;
 }
 
-function deleteOrder(id){if(!confirm('Xóa đơn hàng?'))return;fetch(`/orders/${id}`,{method:'DELETE',headers:{'X-CSRF-TOKEN':csrfToken}}).then(r=>r.json()).then(r=>{if(r.success){alert(r.message);location.reload()}else alert(r.message)})}
+function addEditItemRow(maSP, soLuong, giaBan) {
+    const list = document.getElementById('eoItemsList');
+    const row = document.createElement('div');
+    row.className = 'item-row';
+    const fmtGia = Number(giaBan||0).toLocaleString('vi-VN');
+    row.innerHTML = `<select onchange="onEditSPChange(this)" style="flex:2">${buildProductOptions(maSP||'')}</select>`
+        + `<input type="number" value="${soLuong||1}" min="1" step="1" style="width:60px" onchange="calcEditTotal()" oninput="calcEditTotal()">`
+        + `<input type="text" value="${fmtGia}" class="fmt-gia" style="width:100px;text-align:right" oninput="fmtGiaInput(this)">`
+        + `<button type="button" class="item-remove" onclick="this.closest('.item-row').remove();calcEditTotal()">&times;</button>`;
+    list.appendChild(row);
+}
+
+function addEditItem() {
+    addEditItemRow('', 1, 0);
+}
+
+function onEditSPChange(sel) {
+    const opt = sel.options[sel.selectedIndex];
+    const row = sel.closest('.item-row');
+    const giaInput = row.querySelector('.fmt-gia');
+    if (opt && opt.value) {
+        giaInput.value = Number(opt.dataset.gia || 0).toLocaleString('vi-VN');
+    }
+    calcEditTotal();
+}
+
+function parseGia(s) { return Number(String(s||0).replace(/[^0-9]/g,'')) || 0; }
+function fmtGiaInput(el) {
+    const raw = parseGia(el.value);
+    const pos = el.selectionStart;
+    const oldLen = el.value.length;
+    el.value = raw ? raw.toLocaleString('vi-VN') : '';
+    const newLen = el.value.length;
+    el.setSelectionRange(pos + newLen - oldLen, pos + newLen - oldLen);
+    calcEditTotal();
+}
+
+function calcEditTotal() {
+    let total = 0;
+    document.querySelectorAll('#eoItemsList .item-row').forEach(row => {
+        const slInput = row.querySelector('input[type=number]');
+        const giaInput = row.querySelector('.fmt-gia');
+        const sl = Number(slInput.value || 0);
+        const gia = parseGia(giaInput.value);
+        total += sl * gia;
+    });
+    document.getElementById('eoSPTotal').textContent = total.toLocaleString('vi-VN') + '\u0111';
+    const giamGia = total > editOrderTongTien ? (total - editOrderTongTien) : 0;
+    document.getElementById('eoGG').value = giamGia > 0 ? giamGia.toLocaleString('vi-VN')+'\u0111' : '0';
+}
+
+function saveOrderEdit(){
+    const id = document.getElementById('editOrderId').value;
+    const items = [];
+    document.querySelectorAll('#eoItemsList .item-row').forEach(row => {
+        const sel = row.querySelector('select');
+        const slInput = row.querySelector('input[type=number]');
+        const giaInput = row.querySelector('.fmt-gia');
+        if (sel.value) {
+            items.push({
+                MaSP: sel.value,
+                SoLuong: Number(slInput.value || 1),
+                GiaBan: parseGia(giaInput.value)
+            });
+        }
+    });
+    const d = {
+        TenKH: document.getElementById('eoTenKH').value,
+        SoDienThoai: document.getElementById('eoSoDT').value,
+        DiaChi: document.getElementById('eoDC').value,
+        DonHang: document.getElementById('eoDH').value,
+        items: items
+    };
+    fetch(`/orders/${id}`, {
+        method: 'PUT',
+        headers: {'Content-Type':'application/json', 'X-CSRF-TOKEN': csrfToken},
+        body: JSON.stringify(d)
+    }).then(r=>r.json()).then(r=>{
+        if(r.success){alert(r.message);location.reload()}
+        else alert(r.message)
+    })
+}
+
+function deleteOrder(id){if(!confirm('X\u00f3a \u0111\u01a1n h\u00e0ng?'))return;fetch(`/orders/${id}`,{method:'DELETE',headers:{'X-CSRF-TOKEN':csrfToken}}).then(r=>r.json()).then(r=>{if(r.success){alert(r.message);location.reload()}else alert(r.message)})}
 
 document.querySelectorAll('.modal-overlay').forEach(m=>m.addEventListener('click',e=>{if(e.target===m)m.classList.remove('show')}));
 </script>
