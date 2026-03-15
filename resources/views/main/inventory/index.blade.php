@@ -256,7 +256,7 @@ function loadData(){
                 <td style="text-align:right;color:#059669;font-weight:600">${fmtN(x.GiaBan)}</td>
             </tr>`;
         });
-        $('#xuatTable tbody').html(xHtml||'<tr><td colspan="6" style="text-align:center;color:#999;padding:12px">Không có dữ liệu</td></tr>');
+        $('#xuatTable tbody').html(xHtml);
         xuatDT=$('#xuatTable').DataTable({order:[[0,'desc']],pageLength:10,language:dtLang,destroy:true});
 
         // Nhập Table
@@ -275,7 +275,7 @@ function loadData(){
                 </td>
             </tr>`;
         });
-        $('#nhapTable tbody').html(nHtml||'<tr><td colspan="5" style="text-align:center;color:#999;padding:12px">Không có dữ liệu</td></tr>');
+        $('#nhapTable tbody').html(nHtml);
         nhapDT=$('#nhapTable').DataTable({order:[[0,'desc']],pageLength:10,language:dtLang,destroy:true,columnDefs:[{orderable:false,targets:[4]}]});
 
         // Tổng Xuất (uses xuất dates)
