@@ -132,6 +132,13 @@
                     </form>
                 </nav>
 
+                <div style="padding:8px 12px;border-top:1px solid rgba(255,255,255,0.12)">
+                    <button class="sidebar-toggle" id="sidebarToggle" onclick="toggleSidebar()" title="Ẩn/Hiện Sidebar">
+                        <i class="fa-solid fa-angles-left" id="toggleIcon"></i>
+                        <span class="nav-text" style="font-size:13px;color:rgba(255,255,255,0.75)">Thu gọn</span>
+                    </button>
+                </div>
+
                 <!-- Decorative Elements -->
                 <div class="sidebar-decorations">
                     <div class="decoration-orb orb-1"></div>
@@ -141,9 +148,6 @@
             </aside>
 
             <main class="maincp-main">
-                <button class="sidebar-toggle" id="sidebarToggle" onclick="toggleSidebar()" title="Ẩn/Hiện Sidebar">
-                    <i class="fa-solid fa-bars"></i>
-                </button>
                 @if(session('success'))
                     <div class="alert alert-success">
                         <i class="fa-solid fa-circle-check"></i> {{ session('success') }}
