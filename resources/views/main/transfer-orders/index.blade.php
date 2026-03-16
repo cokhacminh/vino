@@ -279,7 +279,7 @@ let algoSettings = DB_SETTINGS || {
 };
 
 function fillSettingsForm() {
-    document.getElementById('cfgMarkup').value = algoSettings.markup || 20;
+    document.getElementById('cfgMarkup').value = algoSettings.markup != null ? algoSettings.markup : 20;
     for (let i = 0; i < 4; i++) {
         const t = algoSettings.tiers[i] || {};
         document.getElementById(`cfgT${i+1}From`).value = fmtNum(t.from || 0);
@@ -292,7 +292,8 @@ function fillSettingsForm() {
 fillSettingsForm();
 
 function saveSettings() {
-    algoSettings.markup = parseInt(document.getElementById('cfgMarkup').value) || 20;
+    const mkVal = parseInt(document.getElementById('cfgMarkup').value);
+    algoSettings.markup = isNaN(mkVal) ? 20 : mkVal;
     for (let i = 1; i <= 4; i++) {
         algoSettings.tiers[i-1] = {
             from: parseFmt(document.getElementById(`cfgT${i}From`).value),
