@@ -224,8 +224,10 @@ function editOrder(id){
 function buildProductOptions(selectedMaSP) {
     let opts = '<option value="">Ch\u1ecdn SP</option>';
     editProducts.forEach(p => {
+        const tonKD = p.TonKhaDung || 0;
+        if (tonKD <= 0 && p.MaSP !== selectedMaSP) return;
         const sel = p.MaSP === selectedMaSP ? 'selected' : '';
-        opts += `<option value="${p.MaSP}" data-gia="${p.GiaBan_SG||0}" ${sel}>${p.MaSP} - ${p.TenSP}</option>`;
+        opts += `<option value="${p.MaSP}" data-gia="${p.GiaBan_SG||0}" data-ton="${tonKD}" ${sel}>${p.TenSP} (tồn: ${tonKD})</option>`;
     });
     return opts;
 }
@@ -235,8 +237,10 @@ function addEditItemRow(maSP, soLuong, giaBan) {
     const row = document.createElement('div');
     row.className = 'item-row';
     const fmtGia = Number(giaBan||0).toLocaleString('vi-VN');
+    const p = editProducts.find(x => x.MaSP === maSP);
+    const maxQty = p ? (p.TonKhaDung || 0) : 999;
     row.innerHTML = `<select onchange="onEditSPChange(this)" style="flex:2">${buildProductOptions(maSP||'')}</select>`
-        + `<input type="number" value="${soLuong||1}" min="1" step="1" style="width:60px" onchange="calcEditTotal()" oninput="calcEditTotal()">`
+        + `<input type="number" value="${soLuong||1}" min="1" max="${maxQty}" step="1" style="width:60px" onchange="clampEditQty(this);calcEditTotal()" oninput="calcEditTotal()">`
         + `<input type="text" value="${fmtGia}" class="fmt-gia" style="width:100px;text-align:right" oninput="fmtGiaInput(this)">`
         + `<button type="button" class="item-remove" onclick="this.closest('.item-row').remove();calcEditTotal()">&times;</button>`;
     list.appendChild(row);
@@ -250,10 +254,22 @@ function onEditSPChange(sel) {
     const opt = sel.options[sel.selectedIndex];
     const row = sel.closest('.item-row');
     const giaInput = row.querySelector('.fmt-gia');
+    const qtyInput = row.querySelector('input[type=number]');
     if (opt && opt.value) {
         giaInput.value = Number(opt.dataset.gia || 0).toLocaleString('vi-VN');
+        const maxQty = parseInt(opt.dataset.ton) || 1;
+        qtyInput.max = maxQty;
+        if (parseInt(qtyInput.value) > maxQty) qtyInput.value = maxQty;
     }
     calcEditTotal();
+}
+
+function clampEditQty(input) {
+    const max = parseInt(input.max) || 999;
+    let val = parseInt(input.value) || 1;
+    if (val < 1) val = 1;
+    if (val > max) val = max;
+    input.value = val;
 }
 
 function parseGia(s) { return Number(String(s||0).replace(/[^0-9]/g,'')) || 0; }

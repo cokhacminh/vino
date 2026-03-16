@@ -130,7 +130,20 @@ class OrderController extends Controller
             ->select('ct.*', 'sp.TenSP')
             ->get();
 
-        $products = DB::table('sanpham')->get(['MaSP', 'TenSP', 'GiaBan_SG', 'GiaNhap']);
+        // Lấy sản phẩm kèm tồn kho
+        $products = DB::table('sanpham as sp')
+            ->leftJoin('quanlysanpham as q', 'q.MaSP', '=', 'sp.MaSP')
+            ->select('sp.MaSP', 'sp.TenSP', 'sp.GiaBan_SG', 'sp.GiaNhap', DB::raw('COALESCE(CAST(q.SoLuong AS SIGNED), 0) as TonKho'))
+            ->get();
+
+        // Tính tồn kho khả dụng = tồn hiện tại + SP cũ (vì khi sửa sẽ trả lại kho)
+        $oldItemsMap = [];
+        foreach ($items as $it) {
+            $oldItemsMap[$it->MaSP] = ($oldItemsMap[$it->MaSP] ?? 0) + (int) $it->SoLuong;
+        }
+        foreach ($products as $p) {
+            $p->TonKhaDung = (int) $p->TonKho + ($oldItemsMap[$p->MaSP] ?? 0);
+        }
 
         $order->items = $items;
         $order->products = $products;
@@ -142,10 +155,36 @@ class OrderController extends Controller
         $order = DB::table('donhang')->where('id', $id)->first();
         if (!$order) return response()->json(['success' => false, 'message' => 'Không tìm thấy đơn hàng']);
 
+        // Lấy SP cũ để tính tồn kho khả dụng
+        $oldItems = DB::table('chitietdonhang')->where('MaDH', $order->MaDH)->get();
+        $oldItemsMap = [];
+        foreach ($oldItems as $old) {
+            $oldItemsMap[$old->MaSP] = ($oldItemsMap[$old->MaSP] ?? 0) + (int) $old->SoLuong;
+        }
+
+        // Kiểm tra tồn kho trước khi thực hiện
+        $newItems = $request->input('items', []);
+        foreach ($newItems as $item) {
+            if (empty($item['MaSP'])) continue;
+            $stock = DB::table('quanlysanpham')->where('MaSP', $item['MaSP'])->first();
+            $currentStock = $stock ? (int) $stock->SoLuong : 0;
+            $returnedFromOld = $oldItemsMap[$item['MaSP']] ?? 0;
+            $available = $currentStock + $returnedFromOld;
+            $needed = (int) ($item['SoLuong'] ?? 1);
+
+            if ($needed > $available) {
+                $sp = DB::table('sanpham')->where('MaSP', $item['MaSP'])->first();
+                $tenSP = $sp->TenSP ?? $item['MaSP'];
+                return response()->json([
+                    'success' => false,
+                    'message' => "Không đủ tồn kho cho {$tenSP}: cần {$needed}, khả dụng {$available}"
+                ]);
+            }
+        }
+
         DB::beginTransaction();
         try {
             // 1. Bù lại tồn kho từ sản phẩm cũ
-            $oldItems = DB::table('chitietdonhang')->where('MaDH', $order->MaDH)->get();
             foreach ($oldItems as $old) {
                 $stock = DB::table('quanlysanpham')->where('MaSP', $old->MaSP)->first();
                 if ($stock) {
@@ -167,7 +206,6 @@ class OrderController extends Controller
             DB::table('chitietdonhang')->where('MaDH', $order->MaDH)->delete();
 
             // 3. Thêm sản phẩm mới + trừ tồn kho
-            $newItems = $request->input('items', []);
             $tongGiaTriSP = 0;
             foreach ($newItems as $item) {
                 if (empty($item['MaSP'])) continue;
