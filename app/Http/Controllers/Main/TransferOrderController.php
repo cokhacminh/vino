@@ -180,7 +180,7 @@ class TransferOrderController extends Controller
 
     public function getFailedOrders(Request $request)
     {
-        $thang = $request->input('Thang', now()->format('m/Y'));
+        $thang = $request->input('Thang', now()->format('Y-m'));
 
         $curl = curl_init();
         curl_setopt_array($curl, [

@@ -166,7 +166,7 @@ const csrfToken=document.querySelector('meta[name="csrf-token"]').content;
 let idx=1;
 
 $(document).ready(function(){
-    $('#ordersTable').DataTable({
+    const dt = $('#ordersTable').DataTable({
         order: [[0,'desc']],
         pageLength: 25,
         language: {
@@ -182,6 +182,30 @@ $(document).ready(function(){
             { orderable: false, targets: [5] }
         ]
     });
+
+    // Add page jump input
+    function addPageJump() {
+        const wrapper = $('#ordersTable_paginate');
+        if (!wrapper.length || wrapper.find('.page-jump').length) return;
+        const totalPages = dt.page.info().pages;
+        const currentPage = dt.page.info().page + 1;
+        wrapper.append(`<span class="page-jump" style="margin-left:10px;display:inline-flex;align-items:center;gap:4px;font-size:12px;color:var(--text-secondary)">
+            Trang <input type="number" id="pageJumpInput" value="${currentPage}" min="1" max="${totalPages}" style="width:50px;padding:4px 6px;border:1.5px solid var(--border);border-radius:6px;font-size:12px;text-align:center"> / ${totalPages}
+        </span>`);
+        $('#pageJumpInput').on('keydown', function(e) {
+            if (e.key === 'Enter') {
+                let page = parseInt(this.value) || 1;
+                if (page < 1) page = 1;
+                if (page > totalPages) page = totalPages;
+                dt.page(page - 1).draw('page');
+            }
+        });
+    }
+    dt.on('draw', function() {
+        $('#ordersTable_paginate .page-jump').remove();
+        addPageJump();
+    });
+    addPageJump();
 });
 
 // Flatpickr date range
@@ -324,6 +348,7 @@ function saveOrderEdit(){
         if (sel.value) {
             items.push({
                 MaSP: sel.value,
+                TenSP: sel.options[sel.selectedIndex].text.replace(/\s*\(tồn:.*\)/, ''),
                 SoLuong: Number(slInput.value || 1),
                 GiaBan: parseGia(giaInput.value)
             });
@@ -341,9 +366,49 @@ function saveOrderEdit(){
         headers: {'Content-Type':'application/json', 'X-CSRF-TOKEN': csrfToken},
         body: JSON.stringify(d)
     }).then(r=>r.json()).then(r=>{
-        if(r.success){alert(r.message);location.reload()}
-        else alert(r.message)
+        if(r.success){
+            // Close modal
+            document.getElementById('editOrderModal').classList.remove('show');
+            // Show toast
+            showToast(r.message);
+            // Update DataTable row in-place
+            const row = document.querySelector(`button[onclick="editOrder(${id})"]`);
+            if (row) {
+                const tr = row.closest('tr');
+                // Cột Khách Hàng (index 1)
+                const sdt = d.SoDienThoai || '';
+                const sdtMask = sdt.length >= 7 ? sdt.substring(0,4)+'***'+sdt.substring(sdt.length-3) : sdt;
+                tr.cells[1].innerHTML = `<strong>${d.TenKH || '-'}</strong><br><span style="font-size:12px;color:var(--text-secondary)">${sdtMask}</span>`;
+                // Cột Địa Chỉ (index 2)
+                tr.cells[2].textContent = d.DiaChi || '-';
+                tr.cells[2].title = d.DiaChi || '';
+                // Cột Sản Phẩm (index 3)
+                const spHtml = items.map(it => `<span>${it.TenSP} x${it.SoLuong}</span>`).join('');
+                tr.cells[3].innerHTML = `<div class="sp-list">${spHtml || '<span style="color:var(--text-muted)">-</span>'}</div>`;
+                // Cột Thanh Toán (index 4) - cập nhật giảm giá
+                const tongSP = items.reduce((s, it) => s + it.GiaBan * it.SoLuong, 0);
+                const giamGia = tongSP > editOrderTongTien ? (tongSP - editOrderTongTien) : 0;
+                let ttHtml = `<strong style="color:#059669">${editOrderTongTien.toLocaleString('vi-VN')}đ</strong>`;
+                if (giamGia > 0) ttHtml += `<br><span style="font-size:11px;color:#dc2626">Giảm -${giamGia.toLocaleString('vi-VN')}đ</span>`;
+                tr.cells[4].innerHTML = ttHtml;
+            }
+        }
+        else alert(r.message);
     })
+}
+
+function showToast(msg) {
+    let toast = document.getElementById('editToast');
+    if (!toast) {
+        toast = document.createElement('div');
+        toast.id = 'editToast';
+        toast.style.cssText = 'position:fixed;top:20px;right:20px;z-index:9999;background:linear-gradient(135deg,#059669,#10b981);color:#fff;padding:12px 20px;border-radius:10px;font-size:14px;font-weight:600;box-shadow:0 4px 16px rgba(0,0,0,0.15);transition:opacity 0.3s;display:flex;align-items:center;gap:8px';
+        document.body.appendChild(toast);
+    }
+    toast.innerHTML = `<i class="fa-solid fa-circle-check"></i> ${msg}`;
+    toast.style.opacity = '1';
+    toast.style.display = 'flex';
+    setTimeout(() => { toast.style.opacity = '0'; setTimeout(() => toast.style.display = 'none', 300); }, 3000);
 }
 
 function deleteOrder(id){if(!confirm('X\u00f3a \u0111\u01a1n h\u00e0ng?'))return;fetch(`/orders/${id}`,{method:'DELETE',headers:{'X-CSRF-TOKEN':csrfToken}}).then(r=>r.json()).then(r=>{if(r.success){alert(r.message);location.reload()}else alert(r.message)})}
