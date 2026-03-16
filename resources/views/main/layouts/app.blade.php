@@ -141,6 +141,9 @@
             </aside>
 
             <main class="maincp-main">
+                <button class="sidebar-toggle" id="sidebarToggle" onclick="toggleSidebar()" title="Ẩn/Hiện Sidebar">
+                    <i class="fa-solid fa-bars"></i>
+                </button>
                 @if(session('success'))
                     <div class="alert alert-success">
                         <i class="fa-solid fa-circle-check"></i> {{ session('success') }}
@@ -207,6 +210,11 @@
 
             // Particles
             createParticles();
+
+            // Restore sidebar state
+            if (localStorage.getItem('sidebarCollapsed') === '1') {
+                document.body.classList.add('sidebar-collapsed');
+            }
         });
 
         function createParticles() {
@@ -220,6 +228,11 @@
                 p.style.animationDuration = (15 + Math.random() * 10) + 's';
                 c.appendChild(p);
             }
+        }
+
+        function toggleSidebar() {
+            document.body.classList.toggle('sidebar-collapsed');
+            localStorage.setItem('sidebarCollapsed', document.body.classList.contains('sidebar-collapsed') ? '1' : '0');
         }
     </script>
     @stack('scripts')

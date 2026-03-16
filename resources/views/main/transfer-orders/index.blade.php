@@ -8,7 +8,7 @@
 .to-grid{display:grid;grid-template-columns:5fr 3fr 3fr;gap:12px;padding:12px}
 .to-card{background:#fff;border-radius:8px;box-shadow:0 1px 4px rgba(0,0,0,.08);overflow:hidden}
 .to-card-header{background:var(--hdr);color:var(--hdr-text);padding:10px 14px;font-weight:700;font-size:13px;text-transform:uppercase;text-align:center;letter-spacing:.5px}
-.to-card-body{padding:10px}
+.to-card-body{padding:10px;overflow-x:auto}
 .to-table{width:100%;border-collapse:collapse;font-size:13px}
 .to-table th{background:var(--hdr);color:#fff;padding:7px 10px;text-align:center;font-size:12px;font-weight:600;border:1px solid #2a3a5e}
 .to-table td{padding:6px 10px;text-align:center;border:1px solid #e2e8f0;vertical-align:middle}
