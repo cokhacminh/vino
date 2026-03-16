@@ -62,8 +62,9 @@ code{color:var(--primary);background:var(--primary-bg);padding:2px 8px;border-ra
     @if(in_array($user->Permission, ['Admin','Kế Toán']))
     <select name="manv" class="form-select" style="width:150px"><option value="">Tất cả NV</option>@foreach($employees as $e)<option value="{{ $e->id }}" {{ $maNV==$e->id?'selected':'' }}>{{ $e->name }}</option>@endforeach</select>
     @endif
-    <input type="text" name="date_from" class="form-input fp-date" value="{{ $dateFrom }}" placeholder="Từ ngày" style="width:130px" readonly>
-    <input type="text" name="date_to" class="form-input fp-date" value="{{ $dateTo }}" placeholder="Đến ngày" style="width:130px" readonly>
+    <input type="hidden" name="date_from" id="hdDateFrom" value="{{ $dateFrom }}">
+    <input type="hidden" name="date_to" id="hdDateTo" value="{{ $dateTo }}">
+    <input type="text" id="dateRangePicker" class="form-input" value="{{ $dateFrom }} đến {{ $dateTo }}" placeholder="Chọn khoảng ngày" style="width:260px" readonly>
     <button type="submit" class="btn-primary btn-sm"><i class="fa-solid fa-filter"></i> Lọc</button>
     @if($dateFrom || $dateTo || $maNV)
     <a href="{{ route('orders.index') }}" class="btn-primary btn-sm" style="background:linear-gradient(135deg,#64748b,#94a3b8)"><i class="fa-solid fa-xmark"></i> Xóa lọc</a>
@@ -183,9 +184,20 @@ $(document).ready(function(){
     });
 });
 
-// Flatpickr
-document.querySelectorAll('.fp-date').forEach(el=>{
-    flatpickr(el,{dateFormat:'d/m/Y',locale:'vn',allowInput:true});
+// Flatpickr date range
+const fpRange = flatpickr('#dateRangePicker', {
+    mode: 'range',
+    dateFormat: 'd/m/Y',
+    locale: 'vn',
+    allowInput: false,
+    defaultDate: [@if($dateFrom)'{{ $dateFrom }}'@endif, @if($dateTo)'{{ $dateTo }}'@endif],
+    onChange: function(dates) {
+        if (dates.length >= 1) {
+            const fmt = d => String(d.getDate()).padStart(2,'0')+'/'+String(d.getMonth()+1).padStart(2,'0')+'/'+d.getFullYear();
+            document.getElementById('hdDateFrom').value = fmt(dates[0]);
+            document.getElementById('hdDateTo').value = dates.length >= 2 ? fmt(dates[1]) : fmt(dates[0]);
+        }
+    }
 });
 
 function exportExcel(){
