@@ -109,7 +109,8 @@
         </div>
     </div>
 
-    {{-- CỘT PHẢI: DANH SÁCH TỒN KHO --}}
+    {{-- CỘT PHẢI: DANH SÁCH TỒN KHO + ĐƠN THẤT BẠI --}}
+    <div>
     <div class="to-card">
         <div class="to-card-header" style="background:#8b1a1a"><i class="fa-solid fa-warehouse"></i> Danh Sách Tồn Kho</div>
         <div class="to-card-body">
@@ -152,6 +153,7 @@
             </table>
             <div id="failedCount" style="text-align:center;font-size:12px;color:#991b1b;font-weight:600;padding:6px 0;display:none"></div>
         </div>
+    </div>
     </div>
 </div>
 
