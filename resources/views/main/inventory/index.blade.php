@@ -122,6 +122,12 @@ code{color:var(--primary);background:var(--primary-bg);padding:2px 6px;border-ra
 <div class="inv-right">
     <div class="inv-section">
         <div class="inv-header"><span><i class="fa-solid fa-boxes-stacked"></i> DANH SÁCH TỒN KHO</span></div>
+        <div class="inv-date">
+            <input type="text" id="tonKhoDate" readonly placeholder="Xem tồn theo ngày" style="flex:1">
+            <button type="button" class="btn-xem" onclick="loadTonKhoTheoNgay()">XEM</button>
+            <button type="button" class="btn-xem" onclick="clearTonKhoDate()" style="background:#64748b;color:#fff">Hiện Tại</button>
+        </div>
+        <div id="tonKhoLabel" style="font-size:11px;color:var(--primary);font-weight:600;padding:4px 12px;display:none"></div>
         <table class="ton-table"><thead><tr><th>Sản Phẩm</th><th style="text-align:right">Số Lượng</th><th style="text-align:right">Tiền Hàng</th></tr></thead>
         <tbody id="tonKhoBody"></tbody></table>
         <div class="total-row" id="totalValueRow">TỔNG GIÁ TRỊ TỒN : 0</div>
@@ -222,6 +228,30 @@ const fpNhap=flatpickr('#dateRangeNhap',{
 });
 
 flatpickr('#importDate',{dateFormat:'d/m/Y',locale:'vn',defaultDate:new Date()});
+flatpickr('#tonKhoDate',{dateFormat:'d/m/Y',locale:'vn',allowInput:false});
+
+function loadTonKhoTheoNgay() {
+    const date = document.getElementById('tonKhoDate').value;
+    if (!date) { alert('Vui lòng chọn ngày'); return; }
+    $.getJSON('/inventory/stock-at-date', {date: date}, function(data) {
+        let tkHtml = '';
+        data.tonKho.forEach(t => {
+            const tien = Math.round((t.SoLuong || 0) * (t.GiaNhap || 0));
+            const cls = t.SoLuong <= 0 ? 'class="low"' : '';
+            tkHtml += `<tr ${cls}><td>${t.TenSP || t.MaSP}</td><td style="text-align:right;font-weight:600">${fmtN(t.SoLuong)}</td><td style="text-align:right;color:#059669;font-weight:600">${fmtN(tien)}</td></tr>`;
+        });
+        $('#tonKhoBody').html(tkHtml || '<tr><td colspan="3" style="text-align:center;color:#999;padding:12px">Trống</td></tr>');
+        $('#totalValueRow').text('TỔNG GIÁ TRỊ TỒN : ' + fmtN(Math.round(data.totalValue)));
+        $('#tonKhoLabel').text('Tồn kho tại ngày: ' + data.date).show();
+    });
+}
+
+function clearTonKhoDate() {
+    document.getElementById('tonKhoDate').value = '';
+    document.getElementById('tonKhoDate')._flatpickr.clear();
+    $('#tonKhoLabel').hide();
+    loadData();
+}
 
 function getParams(){
     const xd=fpXuat.selectedDates, nd=fpNhap.selectedDates;

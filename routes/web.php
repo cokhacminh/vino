@@ -70,6 +70,7 @@ Route::middleware('auth')->group(function () {
         Route::delete('/nhap/{id}', [InventoryController::class, 'deleteNhap'])->name('deleteNhap');
         Route::put('/nhap/{id}', [InventoryController::class, 'updateNhap'])->name('updateNhap');
         Route::post('/reset-data', [InventoryController::class, 'resetData'])->name('resetData');
+        Route::get('/stock-at-date', [InventoryController::class, 'stockAtDate'])->name('stockAtDate');
     });
 
     // 6. Transfer Orders - CHUYỂN ĐƠN HÀNG

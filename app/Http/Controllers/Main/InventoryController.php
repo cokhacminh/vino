@@ -74,7 +74,7 @@ class InventoryController extends Controller
         // TỒN KHO
         $tonKho = DB::table('quanlysanpham as q')
             ->leftJoin('sanpham as s', 's.MaSP', '=', 'q.MaSP')
-            ->select('q.MaSP', 'q.TenSP', DB::raw('CAST(q.SoLuong AS UNSIGNED) as SoLuong'), 's.GiaNhap')
+            ->select('q.MaSP', 'q.TenSP', DB::raw('CAST(q.SoLuong AS SIGNED) as SoLuong'), 's.GiaNhap')
             ->orderBy('q.TenSP')->get();
 
         $totalValue = $tonKho->sum(fn($i) => ($i->SoLuong ?? 0) * ($i->GiaNhap ?? 0));
@@ -88,6 +88,58 @@ class InventoryController extends Controller
             'tongNhap' => $tongNhap,
             'tonKho' => $tonKho,
             'totalValue' => $totalValue,
+        ]);
+    }
+
+    public function stockAtDate(Request $request)
+    {
+        $dateStr = $request->input('date', now()->format('d/m/Y'));
+        $parts = explode('/', $dateStr);
+        $dbDate = count($parts) == 3 ? "{$parts[2]}-{$parts[1]}-{$parts[0]}" : now()->format('Y-m-d');
+
+        // Tồn kho hiện tại
+        $currentStock = DB::table('quanlysanpham as q')
+            ->leftJoin('sanpham as s', 's.MaSP', '=', 'q.MaSP')
+            ->select('q.MaSP', 'q.TenSP', DB::raw('CAST(q.SoLuong AS SIGNED) as SoLuong'), 's.GiaNhap')
+            ->get()
+            ->keyBy('MaSP');
+
+        // Nhập kho SAU ngày đó (chưa xảy ra → trừ đi)
+        $nhapAfter = DB::table('nhapkho')
+            ->select('MaSP', DB::raw('SUM(SoLuong) as Total'))
+            ->where('Ngay', '>', $dbDate)
+            ->groupBy('MaSP')
+            ->pluck('Total', 'MaSP');
+
+        // Xuất kho SAU ngày đó (chưa xảy ra → cộng lại)
+        $xuatAfter = DB::table('chitietdonhang as ct')
+            ->leftJoin('donhang as dh', 'dh.MaDH', '=', 'ct.MaDH')
+            ->select('ct.MaSP', DB::raw('SUM(ct.SoLuong) as Total'))
+            ->where('dh.Ngay', '>', $dbDate)
+            ->groupBy('ct.MaSP')
+            ->pluck('Total', 'MaSP');
+
+        $result = [];
+        $totalValue = 0;
+        foreach ($currentStock as $maSP => $item) {
+            $soLuong = (int) $item->SoLuong
+                - (int) ($nhapAfter[$maSP] ?? 0)
+                + (int) ($xuatAfter[$maSP] ?? 0);
+            $giaNhap = (int) ($item->GiaNhap ?? 0);
+            $tienHang = $soLuong * $giaNhap;
+            $totalValue += $tienHang;
+            $result[] = [
+                'MaSP' => $maSP,
+                'TenSP' => $item->TenSP,
+                'SoLuong' => $soLuong,
+                'GiaNhap' => $giaNhap,
+            ];
+        }
+
+        return response()->json([
+            'tonKho' => $result,
+            'totalValue' => $totalValue,
+            'date' => $dateStr,
         ]);
     }
 
