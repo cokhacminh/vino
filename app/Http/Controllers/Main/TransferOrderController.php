@@ -261,6 +261,34 @@ class TransferOrderController extends Controller
                 'DonHang' => '',
             ]);
 
+            // === KIỂM TRA TỒN KHO TRƯỚC KHI XUẤT ===
+            $groupedItems = [];
+            foreach ($items as $item) {
+                if (empty($item['MaSP'])) continue;
+                $maSP = $item['MaSP'];
+                $qty = $item['SoLuong'] ?? 1;
+                $groupedItems[$maSP] = ($groupedItems[$maSP] ?? 0) + $qty;
+            }
+
+            $insufficientItems = [];
+            foreach ($groupedItems as $maSP => $requiredQty) {
+                $stock = DB::table('quanlysanpham')->where('MaSP', $maSP)->first();
+                $currentQty = $stock ? (int) $stock->SoLuong : 0;
+                if ($currentQty < $requiredQty) {
+                    $tenSP = $stock->TenSP ?? $maSP;
+                    $insufficientItems[] = "{$tenSP} (cần {$requiredQty}, tồn kho {$currentQty})";
+                }
+            }
+
+            if (!empty($insufficientItems)) {
+                DB::rollBack();
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Tồn kho không đủ: ' . implode(', ', $insufficientItems),
+                ]);
+            }
+            // === KẾT THÚC KIỂM TRA TỒN KHO ===
+
             // Xóa chi tiết đơn hàng cũ nếu có, rồi insert mới + trừ tồn kho
             DB::table('chitietdonhang')->where('MaDH', $maDH)->delete();
             foreach ($items as $item) {
