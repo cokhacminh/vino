@@ -391,6 +391,9 @@ function saveOrderEdit(){
                 let ttHtml = `<strong style="color:#059669">${editOrderTongTien.toLocaleString('vi-VN')}đ</strong>`;
                 if (giamGia > 0) ttHtml += `<br><span style="font-size:11px;color:#dc2626">Giảm -${giamGia.toLocaleString('vi-VN')}đ</span>`;
                 tr.cells[4].innerHTML = ttHtml;
+                // Highlight edited row
+                tr.style.transition = 'background 0.3s';
+                tr.style.background = '#fefce8';
             }
         }
         else alert(r.message);
@@ -402,7 +405,7 @@ function showToast(msg) {
     if (!toast) {
         toast = document.createElement('div');
         toast.id = 'editToast';
-        toast.style.cssText = 'position:fixed;top:20px;right:20px;z-index:9999;background:linear-gradient(135deg,#059669,#10b981);color:#fff;padding:12px 20px;border-radius:10px;font-size:14px;font-weight:600;box-shadow:0 4px 16px rgba(0,0,0,0.15);transition:opacity 0.3s;display:flex;align-items:center;gap:8px';
+        toast.style.cssText = 'position:fixed;bottom:20px;right:20px;z-index:9999;background:linear-gradient(135deg,#059669,#10b981);color:#fff;padding:12px 20px;border-radius:10px;font-size:14px;font-weight:600;box-shadow:0 4px 16px rgba(0,0,0,0.15);transition:opacity 0.3s;display:flex;align-items:center;gap:8px';
         document.body.appendChild(toast);
     }
     toast.innerHTML = `<i class="fa-solid fa-circle-check"></i> ${msg}`;
