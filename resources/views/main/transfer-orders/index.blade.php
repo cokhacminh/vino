@@ -131,6 +131,28 @@
             </table>
         </div>
     </div>
+
+    {{-- BẢNG ĐƠN THẤT BẠI --}}
+    <div class="to-card" style="margin-top:12px">
+        <div class="to-card-header" style="background:#dc2626"><i class="fa-solid fa-circle-xmark"></i> Danh Sách Đơn Thất Bại</div>
+        <div class="to-filter" style="border-bottom:1px solid #e2e8f0">
+            <input type="text" id="failedMonthPicker" class="fp-month-input" readonly placeholder="Chọn tháng" style="width:140px;background:#fef2f2;color:#991b1b">
+            <button class="to-btn to-btn-red" onclick="loadFailedOrders()">XEM</button>
+        </div>
+        <div class="to-card-body">
+            <table class="to-table">
+                <thead><tr>
+                    <th style="background:#dc2626">Ngày</th>
+                    <th style="background:#dc2626">Mã Đơn</th>
+                    <th style="background:#dc2626">Tổng Tiền</th>
+                </tr></thead>
+                <tbody id="failedOrdersBody">
+                    <tr><td colspan="3" class="to-empty">Chọn tháng và nhấn XEM</td></tr>
+                </tbody>
+            </table>
+            <div id="failedCount" style="text-align:center;font-size:12px;color:#991b1b;font-weight:600;padding:6px 0;display:none"></div>
+        </div>
+    </div>
 </div>
 
 {{-- MODAL SỬA SẢN PHẨM ĐƠN HÀNG --}}
@@ -224,9 +246,50 @@
 @push('scripts')
 <script src="https://cdn.jsdelivr.net/npm/flatpickr"></script>
 <script src="https://cdn.jsdelivr.net/npm/flatpickr/dist/l10n/vn.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/flatpickr/dist/plugins/monthSelect/index.js"></script>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/flatpickr/dist/plugins/monthSelect/style.css">
 <script>
 const INVENTORY_ORIGINAL = @json($tonKhoJs);
 const fp = flatpickr('#toDatePicker', {dateFormat:'d/m/Y', locale:'vn', allowInput:true, defaultDate:'today'});
+
+// Month picker cho đơn thất bại
+const fpFailedMonth = flatpickr('#failedMonthPicker', {
+    plugins: [new monthSelectPlugin({shorthand: true, dateFormat: 'm/Y', altFormat: 'F Y'})],
+    locale: 'vn',
+    defaultDate: new Date()
+});
+
+function loadFailedOrders() {
+    const thang = document.getElementById('failedMonthPicker').value;
+    if (!thang) { alert('Vui lòng chọn tháng'); return; }
+    const tbody = document.getElementById('failedOrdersBody');
+    tbody.innerHTML = '<tr><td colspan="3" class="to-empty"><i class="fa-solid fa-spinner fa-spin"></i> Đang tải...</td></tr>';
+    fetch(`/transfer-orders/failed-orders?Thang=${encodeURIComponent(thang)}`)
+        .then(r => r.json())
+        .then(data => {
+            const orders = data.orders || [];
+            if (!orders.length) {
+                tbody.innerHTML = '<tr><td colspan="3" class="to-empty">Không có đơn thất bại</td></tr>';
+                document.getElementById('failedCount').style.display = 'none';
+                return;
+            }
+            tbody.innerHTML = orders.map(o => {
+                const ngay = o.Ngay ? new Date(o.Ngay).toLocaleDateString('vi-VN') : '';
+                const tien = Number(o.TongTien || 0).toLocaleString('vi-VN');
+                return `<tr>
+                    <td style="white-space:nowrap">${ngay}</td>
+                    <td><code style="color:#991b1b;background:#fef2f2;padding:2px 6px;border-radius:4px;font-size:12px">${o.MaDH || ''}</code></td>
+                    <td style="font-weight:600">${tien}</td>
+                </tr>`;
+            }).join('');
+            const totalAmount = orders.reduce((s, o) => s + Number(o.TongTien || 0), 0);
+            document.getElementById('failedCount').style.display = 'block';
+            document.getElementById('failedCount').textContent = `Tổng: ${orders.length} đơn — ${totalAmount.toLocaleString('vi-VN')}đ`;
+        })
+        .catch(() => {
+            tbody.innerHTML = '<tr><td colspan="3" class="to-empty" style="color:#dc2626">Lỗi kết nối</td></tr>';
+        });
+}
 
 function navDate(dir) {
     const cur = fp.selectedDates[0] || new Date();

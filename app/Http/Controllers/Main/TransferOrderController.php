@@ -178,6 +178,38 @@ class TransferOrderController extends Controller
         ]);
     }
 
+    public function getFailedOrders(Request $request)
+    {
+        $thang = $request->input('Thang', now()->format('m/Y'));
+
+        $curl = curl_init();
+        curl_setopt_array($curl, [
+            CURLOPT_URL => 'https://thuysansg.com/webhook/danh-sach-don-that-bai',
+            CURLOPT_RETURNTRANSFER => true,
+            CURLOPT_ENCODING => '',
+            CURLOPT_MAXREDIRS => 10,
+            CURLOPT_TIMEOUT => 30,
+            CURLOPT_FOLLOWLOCATION => true,
+            CURLOPT_HTTP_VERSION => CURL_HTTP_VERSION_1_1,
+            CURLOPT_CUSTOMREQUEST => 'POST',
+            CURLOPT_POSTFIELDS => ['Thang' => $thang],
+        ]);
+        $response = curl_exec($curl);
+        $httpCode = curl_getinfo($curl, CURLINFO_HTTP_CODE);
+        curl_close($curl);
+
+        if ($httpCode !== 200 || !$response) {
+            return response()->json(['orders' => [], 'error' => 'Không thể kết nối']);
+        }
+
+        $orders = json_decode($response, false) ?: [];
+
+        return response()->json([
+            'orders' => $orders,
+            'thang' => $thang,
+        ]);
+    }
+
     public function saveSettings(Request $request)
     {
         $settings = $request->input('settings');
