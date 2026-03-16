@@ -224,8 +224,8 @@ function editOrder(id){
 function buildProductOptions(selectedMaSP) {
     let opts = '<option value="">Ch\u1ecdn SP</option>';
     editProducts.forEach(p => {
-        const tonKD = p.TonKhaDung || 0;
-        const tonHT = p.TonKho || 0;
+        const tonKD = Math.max(0, p.TonKhaDung || 0);
+        const tonHT = Math.max(0, p.TonKho || 0);
         if (tonKD <= 0 && p.MaSP !== selectedMaSP) return;
         const sel = p.MaSP === selectedMaSP ? 'selected' : '';
         opts += `<option value="${p.MaSP}" data-gia="${p.GiaBan_SG||0}" data-ton="${tonKD}" ${sel}>${p.TenSP} (tồn: ${tonHT})</option>`;
