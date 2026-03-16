@@ -147,9 +147,20 @@ class OrderController extends Controller
             // 1. Bù lại tồn kho từ sản phẩm cũ
             $oldItems = DB::table('chitietdonhang')->where('MaDH', $order->MaDH)->get();
             foreach ($oldItems as $old) {
-                DB::table('quanlysanpham')
-                    ->where('MaSP', $old->MaSP)
-                    ->increment('SoLuong', $old->SoLuong);
+                $stock = DB::table('quanlysanpham')->where('MaSP', $old->MaSP)->first();
+                if ($stock) {
+                    DB::table('quanlysanpham')
+                        ->where('MaSP', $old->MaSP)
+                        ->update(['SoLuong' => $stock->SoLuong + $old->SoLuong]);
+                } else {
+                    // Tạo mới nếu chưa có trong bảng quanlysanpham
+                    $sp = DB::table('sanpham')->where('MaSP', $old->MaSP)->first();
+                    DB::table('quanlysanpham')->insert([
+                        'MaSP' => $old->MaSP,
+                        'TenSP' => $sp->TenSP ?? $old->MaSP,
+                        'SoLuong' => $old->SoLuong,
+                    ]);
+                }
             }
 
             // 2. Xóa chi tiết đơn hàng cũ
@@ -176,9 +187,12 @@ class OrderController extends Controller
                 $tongGiaTriSP += $giaBan * $soLuong;
 
                 // Trừ tồn kho
-                DB::table('quanlysanpham')
-                    ->where('MaSP', $item['MaSP'])
-                    ->decrement('SoLuong', $soLuong);
+                $stock = DB::table('quanlysanpham')->where('MaSP', $item['MaSP'])->first();
+                if ($stock) {
+                    DB::table('quanlysanpham')
+                        ->where('MaSP', $item['MaSP'])
+                        ->update(['SoLuong' => max(0, $stock->SoLuong - $soLuong)]);
+                }
             }
 
             // 4. Tính giảm giá: nếu tổng SP > TongTien -> chênh lệch = GiamGia
