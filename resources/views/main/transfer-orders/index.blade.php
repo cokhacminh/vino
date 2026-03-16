@@ -534,7 +534,9 @@ function renderOrders(orders, results) {
         } else if (selected.length) {
             spHtml = selected.map(s => `${s.TenSP} x ${s.SoLuong}`).join('<br>');
             const spTotal = selected.reduce((sum, s) => sum + s.GiaBan * s.SoLuong, 0);
+            const deficit = tien - spTotal;
             spTotalFmt = spTotal > 0 ? `<br><b style="color:#059669">${spTotal.toLocaleString('vi-VN')}</b>` : '';
+            if (deficit > 0 && spTotal > 0) spTotalFmt += `<br><b style="color:#dc2626;font-size:11px">thiếu: ${deficit.toLocaleString('vi-VN')}</b>`;
         } else {
             spHtml = '<span style="color:#94a3b8">—</span>';
         }
