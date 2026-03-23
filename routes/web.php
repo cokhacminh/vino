@@ -9,6 +9,7 @@ use App\Http\Controllers\Main\ProductController;
 use App\Http\Controllers\Main\InventoryController;
 use App\Http\Controllers\Main\TransferOrderController;
 use App\Http\Controllers\Main\ReconciliationController;
+use App\Http\Controllers\Main\SuccessOrderController;
 
 // Trang chủ
 Route::get('/', function () {
@@ -84,7 +85,13 @@ Route::middleware('auth')->group(function () {
         Route::get('/failed-orders', [TransferOrderController::class, 'getFailedOrders'])->name('failedOrders');
     });
 
-    // 7. Reconciliation - ĐỐI CHIẾU ĐƠN HÀNG
+    // 7. Đơn Thành Công
+    Route::prefix('success-orders')->name('successOrders.')->group(function() {
+        Route::get('/', [SuccessOrderController::class, 'index'])->name('index');
+        Route::post('/fetch', [SuccessOrderController::class, 'fetchData'])->name('fetch');
+    });
+
+    // 8. Reconciliation - ĐỐI CHIẾU ĐƠN HÀNG
     Route::prefix('reconciliation')->name('reconciliation.')->group(function() {
         Route::get('/', [ReconciliationController::class, 'index'])->name('index');
         Route::post('/fetch', [ReconciliationController::class, 'fetchData'])->name('fetch');

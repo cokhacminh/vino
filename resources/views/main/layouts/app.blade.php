@@ -67,6 +67,17 @@
                         <span class="nav-glow"></span>
                     </a>
 
+                    <!-- 3b. Đơn Thành Công -->
+                    <a href="{{ route('successOrders.index') }}" class="nav-item ripple-effect {{ request()->routeIs('successOrders.*') ? 'active' : '' }}">
+                        <span class="nav-icon floating">
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                            </svg>
+                        </span>
+                        <span class="nav-text">Đơn Thành Công</span>
+                        <span class="nav-glow"></span>
+                    </a>
+
                     <!-- 4. Quản Lý Sản Phẩm -->
                     <a href="{{ route('products.index') }}" class="nav-item ripple-effect {{ request()->routeIs('products.*') ? 'active' : '' }}">
                         <span class="nav-icon floating">
