@@ -42,7 +42,8 @@
                 <thead>
                     <tr>
                         <th style="width:50px">STT</th>
-                        <th>Ngày</th>
+                        <th>Ngày Gửi</th>
+                        <th>Ngày Thành Công</th>
                         <th>Mã Đơn Hàng</th>
                         <th>Tổng Tiền</th>
                         <th>Tình Trạng</th>
@@ -50,7 +51,7 @@
                     </tr>
                 </thead>
                 <tbody id="dtcBody">
-                    <tr><td colspan="6" class="dtc-empty">Chọn ngày và nhấn XEM</td></tr>
+                    <tr><td colspan="7" class="dtc-empty">Chọn ngày và nhấn XEM</td></tr>
                 </tbody>
             </table>
         </div>
@@ -111,7 +112,7 @@ function loadDonTC() {
 
         const orders = data.orders || [];
         if (!orders.length) {
-            tbody.innerHTML = '<tr><td colspan="6" class="dtc-empty">Không có đơn thành công trong khoảng thời gian này</td></tr>';
+            tbody.innerHTML = '<tr><td colspan="7" class="dtc-empty">Không có đơn thành công trong khoảng thời gian này</td></tr>';
             return;
         }
 
@@ -131,9 +132,16 @@ function loadDonTC() {
                 const d = new Date(o.Ngay);
                 if (!isNaN(d)) ngayFmt = String(d.getDate()).padStart(2,'0') + '/' + String(d.getMonth()+1).padStart(2,'0') + '/' + d.getFullYear();
             }
+            // Convert ThoiGian from Y-m-d H:i:s to d/m/Y
+            let thoiGianFmt = '';
+            if (o.ThoiGian) {
+                const t = new Date(o.ThoiGian);
+                if (!isNaN(t)) thoiGianFmt = String(t.getDate()).padStart(2,'0') + '/' + String(t.getMonth()+1).padStart(2,'0') + '/' + t.getFullYear();
+            }
             return `<tr>
                 <td>${i + 1}</td>
                 <td style="white-space:nowrap">${ngayFmt}</td>
+                <td style="white-space:nowrap">${thoiGianFmt}</td>
                 <td><code style="color:#1e40af;background:#dbeafe;padding:2px 8px;border-radius:4px;font-size:12px">${o.MaDH || ''}</code></td>
                 <td style="font-weight:600">${tienFmt}</td>
                 <td>${badge}</td>

@@ -267,8 +267,33 @@ class OrderController extends Controller
 
         $order = DB::table('donhang')->where('id', $id)->first();
         if ($order) {
+            // Lấy thông tin liên quan trước khi xóa
+            $chiTiet = DB::table('chitietdonhang as ct')
+                ->leftJoin('sanpham as sp', 'sp.MaSP', '=', 'ct.MaSP')
+                ->where('ct.MaDH', $order->MaDH)
+                ->select('ct.*', 'sp.TenSP')
+                ->get();
+            $khachHang = DB::table('khachhang')->where('MaDH', $order->MaDH)->first();
+            $nhanVien = DB::table('users')->where('id', $order->MaNV)->first();
+
+            // Lưu Activity Log
+            DB::table('activity_log')->insert([
+                'action' => 'delete',
+                'MaDH' => $order->MaDH,
+                'MaNV' => $order->MaNV,
+                'TenNV' => $nhanVien->name ?? '',
+                'TongTien' => $order->TongTien,
+                'GiamGia' => $order->GiamGia ?? 0,
+                'Ngay' => $order->Ngay,
+                'DonHang' => $order->DonHang,
+                'khach_hang_data' => $khachHang ? json_encode((array) $khachHang) : null,
+                'chi_tiet_data' => json_encode($chiTiet->map(fn($ct) => (array) $ct)->toArray()),
+                'deleted_by' => $user->name,
+                'created_at' => now(),
+                'updated_at' => now(),
+            ]);
+
             // Bù lại tồn kho
-            $chiTiet = DB::table('chitietdonhang')->where('MaDH', $order->MaDH)->get();
             foreach ($chiTiet as $ct) {
                 DB::table('quanlysanpham')
                     ->where('MaSP', $ct->MaSP)

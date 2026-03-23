@@ -10,6 +10,7 @@ use App\Http\Controllers\Main\InventoryController;
 use App\Http\Controllers\Main\TransferOrderController;
 use App\Http\Controllers\Main\ReconciliationController;
 use App\Http\Controllers\Main\SuccessOrderController;
+use App\Http\Controllers\Main\ActivityLogController;
 
 // Trang chủ
 Route::get('/', function () {
@@ -91,7 +92,13 @@ Route::middleware('auth')->group(function () {
         Route::post('/fetch', [SuccessOrderController::class, 'fetchData'])->name('fetch');
     });
 
-    // 8. Reconciliation - ĐỐI CHIẾU ĐƠN HÀNG
+    // 8. Activity Log - ĐƠN HÀNG ĐÃ XÓA
+    Route::prefix('activity-log')->name('activityLog.')->group(function() {
+        Route::get('/', [ActivityLogController::class, 'index'])->name('index');
+        Route::post('/{id}/restore', [ActivityLogController::class, 'restore'])->name('restore');
+    });
+
+    // 9. Reconciliation - ĐỐI CHIẾU ĐƠN HÀNG
     Route::prefix('reconciliation')->name('reconciliation.')->group(function() {
         Route::get('/', [ReconciliationController::class, 'index'])->name('index');
         Route::post('/fetch', [ReconciliationController::class, 'fetchData'])->name('fetch');
