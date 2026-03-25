@@ -87,16 +87,20 @@
             <div class="section-title"><i class="fa-solid fa-calendar-days"></i> Thống Kê Đơn Hàng Theo Ngày</div>
             <div class="table-scroll">
             <table class="data-table">
-                <thead><tr><th>Ngày</th><th style="text-align:center">Số Đơn</th><th style="text-align:right">Tổng Doanh Thu</th></tr></thead>
+                <thead><tr><th>Ngày</th><th style="text-align:center">Số Đơn</th><th style="text-align:right">Doanh Thu</th><th style="text-align:right">Phí Ship</th><th style="text-align:right">Tiền Hàng</th><th style="text-align:right">Lợi Nhuận</th></tr></thead>
                 <tbody>
                     @forelse($dailyOrders as $day)
+                    @php $loiNhuan = $day->TongDoanhThu - $day->TongPhiShip - $day->TongTienHang; @endphp
                     <tr>
                         <td>{{ \Carbon\Carbon::parse($day->Ngay)->format('d/m/Y') }}</td>
                         <td style="text-align:center;font-weight:600">{{ number_format($day->SoDon) }}</td>
                         <td style="text-align:right;color:#059669;font-weight:600">{{ number_format($day->TongDoanhThu) }}đ</td>
+                        <td style="text-align:right;color:#7c3aed;font-weight:600">{{ number_format($day->TongPhiShip) }}đ</td>
+                        <td style="text-align:right;color:#2563eb;font-weight:600">{{ number_format($day->TongTienHang) }}đ</td>
+                        <td style="text-align:right;font-weight:700;color:{{ $loiNhuan >= 0 ? '#059669' : '#dc2626' }}">{{ number_format($loiNhuan) }}đ</td>
                     </tr>
                     @empty
-                    <tr><td colspan="3" style="text-align:center;color:var(--text-muted)">Chưa có dữ liệu</td></tr>
+                    <tr><td colspan="6" style="text-align:center;color:var(--text-muted)">Chưa có dữ liệu</td></tr>
                     @endforelse
                 </tbody>
             </table>
@@ -106,7 +110,7 @@
     <div class="two-col" style="margin-top:24px">
         <div>
             <div class="section-title"><i class="fa-solid fa-circle-check" style="color:#059669"></i> Đơn Giao Thành Công Hôm Nay</div>
-            <div class="table-scroll" style="max-height:395px">
+            <div class="table-scroll" style="max-height:460px">
             <table class="data-table">
                 <thead><tr><th>STT</th><th>Mã Đơn</th><th style="text-align:right">Tổng Tiền</th><th style="text-align:center">Trạng Thái</th></tr></thead>
                 <tbody>

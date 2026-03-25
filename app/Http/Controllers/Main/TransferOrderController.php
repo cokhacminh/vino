@@ -51,7 +51,12 @@ class TransferOrderController extends Controller
             $algoSettings = json_decode($row->value, true);
         }
 
-        return view('main.transfer-orders.index', compact('tonKho', 'tonKhoJs', 'user', 'algoSettings'));
+        // Lấy danh sách sản phẩm bị khóa
+        $lockedRow = DB::table('algorithm_settings')->where('key', 'locked_products')->first();
+        $lockedProducts = $lockedRow ? json_decode($lockedRow->value, true) : [];
+        if (!is_array($lockedProducts)) $lockedProducts = [];
+
+        return view('main.transfer-orders.index', compact('tonKho', 'tonKhoJs', 'user', 'algoSettings', 'lockedProducts'));
     }
 
     public function getData(Request $request)
@@ -78,14 +83,22 @@ class TransferOrderController extends Controller
 
         $orders = json_decode($response, false) ?: [];
 
-        // Kiểm tra MaDH đã tồn tại trong DB donhang chưa
+        // Kiểm tra MaDH đã tồn tại trong DB donhang chưa + đồng bộ PhiShip
         if (count($orders) > 0) {
             $maDHList = array_map(function($o) { return $o->MaDH ?? ''; }, (array) $orders);
             $maDHList = array_filter($maDHList);
-            $existingMaDH = DB::table('donhang')->whereIn('MaDH', $maDHList)->pluck('MaDH')->toArray();
+            $existingOrders = DB::table('donhang')->whereIn('MaDH', $maDHList)->select('MaDH', 'PhiShip')->get()->keyBy('MaDH');
 
             foreach ($orders as $order) {
-                $order->existsInDb = in_array($order->MaDH ?? '', $existingMaDH);
+                $maDH = $order->MaDH ?? '';
+                $order->existsInDb = $existingOrders->has($maDH);
+                if ($order->existsInDb) {
+                    $dbPhiShip = (int)($existingOrders[$maDH]->PhiShip ?? 0);
+                    $jsonPhiShip = (int)($order->PhiShip ?? 0);
+                    if ($dbPhiShip !== $jsonPhiShip && $jsonPhiShip > 0) {
+                        DB::table('donhang')->where('MaDH', $maDH)->update(['PhiShip' => $jsonPhiShip]);
+                    }
+                }
             }
         }
 
@@ -121,10 +134,18 @@ class TransferOrderController extends Controller
         if (count($orders) > 0) {
             $maDHList = array_map(fn($o) => $o->MaDH ?? '', (array) $orders);
             $maDHList = array_filter($maDHList);
-            $existingMaDH = DB::table('donhang')->whereIn('MaDH', $maDHList)->pluck('MaDH')->toArray();
+            $existingOrders = DB::table('donhang')->whereIn('MaDH', $maDHList)->select('MaDH', 'PhiShip')->get()->keyBy('MaDH');
 
             foreach ($orders as $order) {
-                $order->existsInDb = in_array($order->MaDH ?? '', $existingMaDH);
+                $maDH = $order->MaDH ?? '';
+                $order->existsInDb = $existingOrders->has($maDH);
+                if ($order->existsInDb) {
+                    $dbPhiShip = (int)($existingOrders[$maDH]->PhiShip ?? 0);
+                    $jsonPhiShip = (int)($order->PhiShip ?? 0);
+                    if ($dbPhiShip !== $jsonPhiShip && $jsonPhiShip > 0) {
+                        DB::table('donhang')->where('MaDH', $maDH)->update(['PhiShip' => $jsonPhiShip]);
+                    }
+                }
             }
         }
 
@@ -165,10 +186,18 @@ class TransferOrderController extends Controller
         if (count($orders) > 0) {
             $maDHList = array_map(fn($o) => $o->MaDH ?? '', (array) $orders);
             $maDHList = array_filter($maDHList);
-            $existingMaDH = DB::table('donhang')->whereIn('MaDH', $maDHList)->pluck('MaDH')->toArray();
+            $existingOrders = DB::table('donhang')->whereIn('MaDH', $maDHList)->select('MaDH', 'PhiShip')->get()->keyBy('MaDH');
 
             foreach ($orders as $order) {
-                $order->existsInDb = in_array($order->MaDH ?? '', $existingMaDH);
+                $maDH = $order->MaDH ?? '';
+                $order->existsInDb = $existingOrders->has($maDH);
+                if ($order->existsInDb) {
+                    $dbPhiShip = (int)($existingOrders[$maDH]->PhiShip ?? 0);
+                    $jsonPhiShip = (int)($order->PhiShip ?? 0);
+                    if ($dbPhiShip !== $jsonPhiShip && $jsonPhiShip > 0) {
+                        DB::table('donhang')->where('MaDH', $maDH)->update(['PhiShip' => $jsonPhiShip]);
+                    }
+                }
             }
         }
 
@@ -227,6 +256,7 @@ class TransferOrderController extends Controller
         $maDH = $request->input('MaDH');
         $ngay = $request->input('Ngay');
         $tongTien = (int) $request->input('TongTien');
+        $phiShip = (int) $request->input('PhiShip', 0);
         $items = $request->input('items', []);
 
         // Kiểm tra đơn đã tồn tại chưa
@@ -257,6 +287,7 @@ class TransferOrderController extends Controller
                 'MaNV' => $maNV,
                 'TongTien' => $tongTien,
                 'GiamGia' => $giamGia,
+                'PhiShip' => $phiShip,
                 'Ngay' => $ngay,
                 'DonHang' => '',
             ]);
@@ -362,5 +393,30 @@ class TransferOrderController extends Controller
                 'message' => "Lỗi: " . $e->getMessage(),
             ]);
         }
+    }
+
+    public function toggleProductLock(Request $request)
+    {
+        $maSP = $request->input('MaSP');
+        $lock = $request->input('lock'); // true = khóa, false = mở
+
+        $row = DB::table('algorithm_settings')->where('key', 'locked_products')->first();
+        $lockedProducts = $row ? json_decode($row->value, true) : [];
+        if (!is_array($lockedProducts)) $lockedProducts = [];
+
+        if ($lock) {
+            if (!in_array($maSP, $lockedProducts)) {
+                $lockedProducts[] = $maSP;
+            }
+        } else {
+            $lockedProducts = array_values(array_filter($lockedProducts, fn($id) => $id !== $maSP));
+        }
+
+        DB::table('algorithm_settings')->updateOrInsert(
+            ['key' => 'locked_products'],
+            ['value' => json_encode($lockedProducts)]
+        );
+
+        return response()->json(['success' => true, 'lockedProducts' => $lockedProducts]);
     }
 }

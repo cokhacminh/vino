@@ -73,13 +73,16 @@ class DashboardController extends Controller
         // Thống kê đơn hàng theo ngày
         $dailyOrders = DB::table('donhang')
             ->whereBetween('Ngay', [$dateFrom, $dateTo])
+            ->leftJoin(DB::raw('(SELECT MaDH, SUM(SoLuong * GiaNhap) as TienHang FROM chitietdonhang GROUP BY MaDH) as ct'), 'ct.MaDH', '=', 'donhang.MaDH')
             ->select(
-                'Ngay',
+                'donhang.Ngay',
                 DB::raw('COUNT(*) as SoDon'),
-                DB::raw('SUM(TongTien) as TongDoanhThu')
+                DB::raw('SUM(donhang.TongTien) as TongDoanhThu'),
+                DB::raw('SUM(COALESCE(donhang.PhiShip, 0)) as TongPhiShip'),
+                DB::raw('SUM(COALESCE(ct.TienHang, 0)) as TongTienHang')
             )
-            ->groupBy('Ngay')
-            ->orderByDesc('Ngay')
+            ->groupBy('donhang.Ngay')
+            ->orderByDesc('donhang.Ngay')
             ->get();
 
         // Tổng sản phẩm bán ra

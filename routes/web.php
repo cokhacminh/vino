@@ -84,6 +84,7 @@ Route::middleware('auth')->group(function () {
         Route::get('/success-orders', [TransferOrderController::class, 'getSuccessOrders'])->name('successOrders');
         Route::get('/don-chanh', [TransferOrderController::class, 'getDonChanh'])->name('donChanh');
         Route::get('/failed-orders', [TransferOrderController::class, 'getFailedOrders'])->name('failedOrders');
+        Route::post('/toggle-lock', [TransferOrderController::class, 'toggleProductLock'])->name('toggleLock');
     });
 
     // 7. Đơn Thành Công

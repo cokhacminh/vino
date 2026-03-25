@@ -62,6 +62,10 @@
 .to-btn-del-row{background:#dc2626;color:#fff;border:none;border-radius:50%;width:24px;height:24px;font-size:13px;cursor:pointer;display:inline-flex;align-items:center;justify-content:center;transition:all .15s}.to-btn-del-row:hover{background:#b91c1c}
 .edit-stock-hint{font-size:11px;color:#64748b;margin-top:2px}
 .edit-total-row{font-weight:700;font-size:14px;text-align:right;padding:10px 0;color:#1e40af}
+.to-btn-lock{background:#dc2626;color:#fff;border:none;border-radius:5px;padding:3px 10px;font-size:11px;font-weight:600;cursor:pointer;transition:all .15s}.to-btn-lock:hover{background:#b91c1c}
+.to-btn-unlock{background:#059669;color:#fff;border:none;border-radius:5px;padding:3px 10px;font-size:11px;font-weight:600;cursor:pointer;transition:all .15s}.to-btn-unlock:hover{background:#047857}
+.locked-row{opacity:.5;background:#fef2f2!important}
+
 @media(max-width:1024px){.to-grid{grid-template-columns:1fr}}
 </style>
 @endpush
@@ -83,9 +87,9 @@
         <div class="to-card-body">
             <div class="to-loading" id="toLoading"><i class="fa-solid fa-spinner fa-spin fa-2x"></i></div>
             <table class="to-table">
-                <thead><tr><th>STT</th><th>Ngày</th><th>Mã Đơn</th><th>Sản Phẩm</th><th>Tổng Tiền</th><th>Thao Tác</th></tr></thead>
+                <thead><tr><th>STT</th><th>Ngày</th><th>Mã Đơn</th><th>Sản Phẩm</th><th>Tổng Tiền</th><th>Phí Ship</th><th>Thao Tác</th></tr></thead>
                 <tbody id="toOrdersBody">
-                    <tr><td colspan="6" class="to-empty">Chọn ngày và nhấn XEM</td></tr>
+                    <tr><td colspan="7" class="to-empty">Chọn ngày và nhấn XEM</td></tr>
                 </tbody>
             </table>
         </div>
@@ -119,13 +123,21 @@
                     <th style="background:#8b1a1a">Sản Phẩm</th>
                     <th style="background:#8b1a1a">Số Lượng</th>
                     <th style="background:#8b1a1a">Giá Bán</th>
+                    <th style="background:#8b1a1a;width:60px">TT</th>
                 </tr></thead>
                 <tbody id="toStockBody">
                     @foreach($tonKho as $sp)
-                    <tr class="{{ $sp->SoLuong <= 20 ? 'low-stock' : '' }}" data-masp="{{ $sp->MaSP }}">
+                    <tr class="{{ $sp->SoLuong <= 20 ? 'low-stock' : '' }} {{ in_array($sp->MaSP, $lockedProducts) ? 'locked-row' : '' }}" data-masp="{{ $sp->MaSP }}">
                         <td style="text-align:left;padding-left:12px">{{ $sp->TenSP }}</td>
                         <td class="stock-qty">{{ number_format($sp->SoLuong) }}</td>
                         <td>{{ number_format($sp->GiaBan_SG ?? 0) }}</td>
+                        <td>
+                            @if(in_array($sp->MaSP, $lockedProducts))
+                                <button class="to-btn-unlock" onclick="toggleLock('{{ $sp->MaSP }}', false, this)" title="Mở khóa"><i class="fa-solid fa-lock-open"></i> Mở</button>
+                            @else
+                                <button class="to-btn-lock" onclick="toggleLock('{{ $sp->MaSP }}', true, this)" title="Khóa sản phẩm"><i class="fa-solid fa-lock"></i> Khóa</button>
+                            @endif
+                        </td>
                     </tr>
                     @endforeach
                 </tbody>
@@ -252,6 +264,7 @@
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/flatpickr/dist/plugins/monthSelect/style.css">
 <script>
 const INVENTORY_ORIGINAL = @json($tonKhoJs);
+let lockedProducts = @json($lockedProducts);
 const fp = flatpickr('#toDatePicker', {dateFormat:'d/m/Y', locale:'vn', allowInput:true, defaultDate:'today'});
 
 // Month picker cho đơn thất bại
@@ -379,7 +392,7 @@ function saveSettings() {
 
 // ====== THUẬT TOÁN TỰ ĐỘNG CHỌN SẢN PHẨM ======
 function autoSelectProducts(orders) {
-    const stock = INVENTORY_ORIGINAL.map(p => ({...p}));
+    const stock = INVENTORY_ORIGINAL.map(p => ({...p})).filter(p => !lockedProducts.includes(p.MaSP));
     const markupPct = algoSettings.markup / 100;
 
     const sorted = [...orders].map((o, idx) => ({...o, _idx: idx, _tongTien: parseAmount(o.TongTien)}));
@@ -584,7 +597,7 @@ function updateBulkButton() {
 function renderOrders(orders, results) {
     const tbody = document.getElementById('toOrdersBody');
     if (!orders.length) {
-        tbody.innerHTML = '<tr><td colspan="6" class="to-empty">Không có đơn hàng</td></tr>';
+        tbody.innerHTML = '<tr><td colspan="7" class="to-empty">Không có đơn hàng</td></tr>';
         return;
     }
     tbody.innerHTML = orders.map((o, i) => {
@@ -595,7 +608,7 @@ function renderOrders(orders, results) {
         const selected = results[i] || [];
         let spHtml, spTotalFmt = '';
         if (isExisting) {
-            spHtml = '<span style="color:#059669;font-weight:600"><i class="fa-solid fa-check-circle"></i> Đã chuyển đơn rồi</span>';
+            spHtml = '<span style="color:#059669;font-weight:600"><i class="fa-solid fa-check-circle"></i> Đã chuyển đơn</span>';
         } else if (selected.length) {
             spHtml = selected.map(s => `${s.TenSP} x ${s.SoLuong}`).join('<br>');
             const spTotal = selected.reduce((sum, s) => sum + s.GiaBan * s.SoLuong, 0);
@@ -607,6 +620,9 @@ function renderOrders(orders, results) {
         }
         const rowStyle = isExisting ? 'background:#f0fdf4' : '';
         const editBtn = `<button class="to-btn to-btn-edit" onclick="openEditModal(${i})"><i class="fa-solid fa-pen-to-square"></i> Sửa</button>`;
+        // Phí Ship
+        const phiShip = parseAmount(o.PhiShip);
+        const phiShipFmt = phiShip > 0 ? phiShip.toLocaleString('vi-VN') : '<span style="color:#94a3b8">—</span>';
         const actionHtml = isExisting
             ? ''
             : (selected.length
@@ -618,6 +634,7 @@ function renderOrders(orders, results) {
             <td><code style="color:#1e40af;background:#dbeafe;padding:2px 6px;border-radius:4px;font-size:12px">${o.MaDH}</code></td>
             <td style="text-align:left;font-size:12px">${spHtml}${spTotalFmt}</td>
             <td style="font-weight:600">${tienFmt}</td>
+            <td style="font-weight:600">${phiShipFmt}</td>
             <td>${actionHtml}</td>
         </tr>`;
     }).join('');
@@ -676,6 +693,7 @@ async function transferSingle(idx) {
             headers: { 'Content-Type': 'application/json', 'X-CSRF-TOKEN': csrfToken },
             body: JSON.stringify({
                 MaDH: order.MaDH, Ngay: ngay, TongTien: parseAmount(order.TongTien),
+                PhiShip: parseAmount(order.PhiShip),
                 items: selected.map(s => ({ MaSP: s.MaSP, SoLuong: s.SoLuong, GiaBan: s.GiaBan })),
             }),
         });
@@ -903,6 +921,45 @@ function saveEdit() {
     renderTongXuat(currentResults);
     updateBulkButton();
     document.getElementById('editModal').classList.remove('show');
+}
+
+function toggleLock(maSP, lock, btn) {
+    btn.disabled = true;
+    fetch('/transfer-orders/toggle-lock', {
+        method: 'POST',
+        headers: {'Content-Type':'application/json','X-CSRF-TOKEN': csrfToken},
+        body: JSON.stringify({ MaSP: maSP, lock: lock }),
+    })
+    .then(r => r.json())
+    .then(data => {
+        if (data.success) {
+            lockedProducts = data.lockedProducts;
+            const row = btn.closest('tr');
+            if (lock) {
+                row.classList.add('locked-row');
+                btn.className = 'to-btn-unlock';
+                btn.innerHTML = '<i class="fa-solid fa-lock-open"></i> Mở';
+                btn.setAttribute('onclick', `toggleLock('${maSP}', false, this)`);
+                btn.title = 'Mở khóa';
+            } else {
+                row.classList.remove('locked-row');
+                btn.className = 'to-btn-lock';
+                btn.innerHTML = '<i class="fa-solid fa-lock"></i> Khóa';
+                btn.setAttribute('onclick', `toggleLock('${maSP}', true, this)`);
+                btn.title = 'Khóa sản phẩm';
+            }
+            // Re-run auto-select with updated locked products
+            if (currentOrders.length) {
+                const { results } = autoSelectProducts(currentOrders);
+                currentResults = results;
+                renderOrders(currentOrders, currentResults);
+                renderTongXuat(currentResults);
+                updateBulkButton();
+            }
+        }
+        btn.disabled = false;
+    })
+    .catch(() => { btn.disabled = false; alert('Lỗi kết nối'); });
 }
 
 document.addEventListener('DOMContentLoaded', loadData);
