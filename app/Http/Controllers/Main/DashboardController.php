@@ -25,11 +25,15 @@ class DashboardController extends Controller
             ->whereBetween('Ngay', [$dateFrom, $dateTo])
             ->sum('TongTien');
 
-        // Tổng tiền hàng (SoLuong * GiaNhap từ chitietdonhang)
         $tongTienHang = DB::table('chitietdonhang')
             ->whereBetween('NgayBan', [$dateFrom, $dateTo])
             ->select(DB::raw('SUM(SoLuong * GiaNhap) as total'))
             ->value('total') ?? 0;
+
+        // Tổng phí ship
+        $tongPhiShip = DB::table('donhang')
+            ->whereBetween('Ngay', [$dateFrom, $dateTo])
+            ->sum('PhiShip') ?? 0;
 
         // Top 10 Best Seller
         $topSellers = DB::table('donhang as dh')
@@ -98,7 +102,7 @@ class DashboardController extends Controller
             ->get();
 
         return view('main.dashboard', compact(
-            'month', 'user', 'ordersMonth', 'revenueMonth', 'tongTienHang',
+            'month', 'user', 'ordersMonth', 'revenueMonth', 'tongTienHang', 'tongPhiShip',
             'topSellers', 'successOrders', 'dailyOrders', 'topProducts'
         ));
     }

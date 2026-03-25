@@ -56,10 +56,15 @@
             <div class="stat-value">{{ number_format($tongTienHang) }}đ</div>
             <div class="stat-label">Tổng Tiền Hàng</div>
         </div>
+        <div class="stat-card">
+            <div class="stat-icon purple"><i class="fa-solid fa-truck-fast"></i></div>
+            <div class="stat-value">{{ number_format($tongPhiShip) }}đ</div>
+            <div class="stat-label">Tổng Phí Ship</div>
+        </div>
         @if($user->Permission === 'Admin')
         <div class="stat-card" style="border-color:#059669">
             <div class="stat-icon green" style="background:linear-gradient(135deg,#d1fae5,#a7f3d0)"><i class="fa-solid fa-chart-line"></i></div>
-            <div class="stat-value" style="color:#059669">{{ number_format($revenueMonth - $tongTienHang) }}đ</div>
+            <div class="stat-value" style="color:#059669">{{ number_format($revenueMonth - $tongTienHang - $tongPhiShip) }}đ</div>
             <div class="stat-label">Lợi Nhuận</div>
         </div>
         @endif
