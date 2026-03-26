@@ -45,7 +45,7 @@ class SuccessOrderController extends Controller
         if (count($orders) > 0) {
             $maDHList = array_map(fn($o) => $o->MaDH ?? '', (array) $orders);
             $maDHList = array_filter($maDHList);
-            $existingMaDH = DB::table('donhang')->whereIn('MaDH', $maDHList)->pluck('MaDH')->toArray();
+            $existingOrders = DB::table('donhang')->whereIn('MaDH', $maDHList)->select('MaDH', 'GiamGia', 'TongTien')->get()->keyBy('MaDH');
 
             // Lấy thông tin khách hàng
             $customers = DB::table('khachhang')
@@ -58,13 +58,13 @@ class SuccessOrderController extends Controller
             $orderProducts = DB::table('chitietdonhang as ct')
                 ->leftJoin('sanpham as sp', 'sp.MaSP', '=', 'ct.MaSP')
                 ->whereIn('ct.MaDH', $maDHList)
-                ->select('ct.MaDH', 'sp.TenSP', 'ct.SoLuong')
+                ->select('ct.MaDH', 'sp.TenSP', 'ct.GiaBan', 'ct.SoLuong')
                 ->get()
                 ->groupBy('MaDH');
 
             foreach ($orders as $order) {
                 $maDH = $order->MaDH ?? '';
-                $order->existsInDb = in_array($maDH, $existingMaDH);
+                $order->existsInDb = $existingOrders->has($maDH);
 
                 // Khách hàng
                 $kh = $customers->get($maDH);
@@ -75,9 +75,18 @@ class SuccessOrderController extends Controller
                 $order->Huyen = $kh ? $kh->Huyen : '';
                 $order->Tinh = $kh ? $kh->Tinh : '';
 
-                // Sản phẩm
+                // GiamGia và TongTien từ DB
+                $dbOrder = $existingOrders->get($maDH);
+                $order->GiamGia = $dbOrder ? (int)($dbOrder->GiamGia ?? 0) : 0;
+                $order->dbTongTien = $dbOrder ? (int)($dbOrder->TongTien ?? 0) : 0;
+
+                // Sản phẩm (trả về object có TenSP, GiaBan, SoLuong)
                 $products = $orderProducts->get($maDH);
-                $order->SanPham = $products ? $products->map(fn($p) => $p->TenSP . ' x' . $p->SoLuong)->values()->toArray() : [];
+                $order->SanPham = $products ? $products->map(fn($p) => [
+                    'TenSP' => $p->TenSP,
+                    'GiaBan' => (int)$p->GiaBan,
+                    'SoLuong' => (int)$p->SoLuong,
+                ])->values()->toArray() : [];
             }
         }
 

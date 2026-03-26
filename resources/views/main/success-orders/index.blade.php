@@ -42,18 +42,16 @@
                 <thead>
                     <tr>
                         <th style="width:50px">STT</th>
-                        <th>Ngày Gửi</th>
-                        <th>Ngày Thành Công</th>
                         <th>Mã Đơn Hàng</th>
-                        <th>Tổng Tiền</th>
                         <th>Khách Hàng</th>
                         <th>Sản Phẩm</th>
+                        <th>Tổng Tiền</th>
                         <th>Tình Trạng</th>
                         <th>TT</th>
                     </tr>
                 </thead>
                 <tbody id="dtcBody">
-                    <tr><td colspan="9" class="dtc-empty">Chọn ngày và nhấn XEM</td></tr>
+                    <tr><td colspan="7" class="dtc-empty">Chọn ngày và nhấn XEM</td></tr>
                 </tbody>
             </table>
         </div>
@@ -114,7 +112,7 @@ function loadDonTC() {
 
         const orders = data.orders || [];
         if (!orders.length) {
-            tbody.innerHTML = '<tr><td colspan="9" class="dtc-empty">Không có đơn thành công trong khoảng thời gian này</td></tr>';
+            tbody.innerHTML = '<tr><td colspan="7" class="dtc-empty">Không có đơn thành công trong khoảng thời gian này</td></tr>';
             return;
         }
 
@@ -148,16 +146,30 @@ function loadDonTC() {
                 const addr = [o.DiaChi, o.Xa, o.Huyen, o.Tinh].filter(Boolean).join(', ');
                 if (addr) khHtml += `<br><span style="color:#64748b;font-size:11px">${addr}</span>`;
             }
-            // Sản phẩm
-            const spHtml = o.SanPham && o.SanPham.length ? o.SanPham.join('<br>') : '<span style="color:#94a3b8">—</span>';
+            // Sản phẩm: TenSP : GiaBan x SoLuong = ThanhTien
+            let spHtml = '<span style="color:#94a3b8">—</span>';
+            let tongGiaTri = 0;
+            if (o.SanPham && o.SanPham.length) {
+                spHtml = o.SanPham.map(sp => {
+                    const thanhTien = sp.GiaBan * sp.SoLuong;
+                    tongGiaTri += thanhTien;
+                    return `${sp.TenSP} : ${Number(sp.GiaBan).toLocaleString('vi-VN')} x ${sp.SoLuong} = <b>${thanhTien.toLocaleString('vi-VN')}</b>`;
+                }).join('<br>');
+            }
+            // Tổng Tiền: 4 dòng
+            const giamGia = Number(o.GiamGia || 0);
+            const conLai = tongGiaTri - giamGia;
+            const dbTongTien = Number(o.dbTongTien || o.TongTien || 0);
+            const tienHtml = `<span style="color:#2563eb">Tổng : <b>${tongGiaTri.toLocaleString('vi-VN')}</b></span>`
+                + `<br><span style="color:#dc2626">Giảm: <b>-${giamGia.toLocaleString('vi-VN')}</b></span>`
+                + `<br><span style="color:#059669">Còn: <b>${conLai.toLocaleString('vi-VN')}</b></span>`
+                + (dbTongTien !== conLai ? `<br><span style="font-weight:700">TT: ${dbTongTien.toLocaleString('vi-VN')}</span>` : '');
             return `<tr>
                 <td>${i + 1}</td>
-                <td style="white-space:nowrap">${ngayFmt}</td>
-                <td style="white-space:nowrap">${thoiGianFmt}</td>
-                <td><code style="color:#1e40af;background:#dbeafe;padding:2px 8px;border-radius:4px;font-size:12px">${o.MaDH || ''}</code></td>
-                <td style="font-weight:600">${tienFmt}</td>
+                <td style="text-align:left"><code style="color:#1e40af;background:#dbeafe;padding:2px 8px;border-radius:4px;font-size:12px">${o.MaDH || ''}</code><br><span style="color:#64748b;font-size:11px">NTC: ${thoiGianFmt}</span><br><span style="color:#64748b;font-size:11px">NG: ${ngayFmt}</span></td>
                 <td style="text-align:left;font-size:12px">${khHtml}</td>
                 <td style="text-align:left;font-size:12px">${spHtml}</td>
+                <td style="text-align:left;font-size:12px;white-space:nowrap">${tienHtml}</td>
                 <td>${badge}</td>
                 <td></td>
             </tr>`;
