@@ -41,6 +41,15 @@ class SuccessOrderController extends Controller
 
         $orders = json_decode($response, false) ?: [];
 
+        // Loại bỏ MaDH trùng lặp, chỉ giữ lần đầu
+        $seen = [];
+        $orders = array_values(array_filter((array) $orders, function($o) use (&$seen) {
+            $maDH = $o->MaDH ?? '';
+            if ($maDH === '' || isset($seen[$maDH])) return false;
+            $seen[$maDH] = true;
+            return true;
+        }));
+
         // Check MaDH tồn tại trong DB donhang
         if (count($orders) > 0) {
             $maDHList = array_map(fn($o) => $o->MaDH ?? '', (array) $orders);
