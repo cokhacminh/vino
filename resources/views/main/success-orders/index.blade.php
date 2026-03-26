@@ -46,12 +46,14 @@
                         <th>Ngày Thành Công</th>
                         <th>Mã Đơn Hàng</th>
                         <th>Tổng Tiền</th>
+                        <th>Khách Hàng</th>
+                        <th>Sản Phẩm</th>
                         <th>Tình Trạng</th>
                         <th>TT</th>
                     </tr>
                 </thead>
                 <tbody id="dtcBody">
-                    <tr><td colspan="7" class="dtc-empty">Chọn ngày và nhấn XEM</td></tr>
+                    <tr><td colspan="9" class="dtc-empty">Chọn ngày và nhấn XEM</td></tr>
                 </tbody>
             </table>
         </div>
@@ -112,7 +114,7 @@ function loadDonTC() {
 
         const orders = data.orders || [];
         if (!orders.length) {
-            tbody.innerHTML = '<tr><td colspan="7" class="dtc-empty">Không có đơn thành công trong khoảng thời gian này</td></tr>';
+            tbody.innerHTML = '<tr><td colspan="9" class="dtc-empty">Không có đơn thành công trong khoảng thời gian này</td></tr>';
             return;
         }
 
@@ -138,12 +140,24 @@ function loadDonTC() {
                 const t = new Date(o.ThoiGian);
                 if (!isNaN(t)) thoiGianFmt = String(t.getDate()).padStart(2,'0') + '/' + String(t.getMonth()+1).padStart(2,'0') + '/' + t.getFullYear();
             }
+            // Khách hàng
+            let khHtml = '<span style="color:#94a3b8">—</span>';
+            if (o.TenKH) {
+                khHtml = `<b>${o.TenKH}</b>`;
+                if (o.SoDienThoai) khHtml += `<br><span style="color:#64748b;font-size:11px">${o.SoDienThoai}</span>`;
+                const addr = [o.DiaChi, o.Xa, o.Huyen, o.Tinh].filter(Boolean).join(', ');
+                if (addr) khHtml += `<br><span style="color:#64748b;font-size:11px">${addr}</span>`;
+            }
+            // Sản phẩm
+            const spHtml = o.SanPham && o.SanPham.length ? o.SanPham.join('<br>') : '<span style="color:#94a3b8">—</span>';
             return `<tr>
                 <td>${i + 1}</td>
                 <td style="white-space:nowrap">${ngayFmt}</td>
                 <td style="white-space:nowrap">${thoiGianFmt}</td>
                 <td><code style="color:#1e40af;background:#dbeafe;padding:2px 8px;border-radius:4px;font-size:12px">${o.MaDH || ''}</code></td>
                 <td style="font-weight:600">${tienFmt}</td>
+                <td style="text-align:left;font-size:12px">${khHtml}</td>
+                <td style="text-align:left;font-size:12px">${spHtml}</td>
                 <td>${badge}</td>
                 <td></td>
             </tr>`;
@@ -159,7 +173,7 @@ function loadDonTC() {
         loading.style.display = 'none';
         btn.disabled = false;
         btn.innerHTML = '<i class="fa-solid fa-eye"></i> XEM';
-        tbody.innerHTML = '<tr><td colspan="6" class="dtc-empty" style="color:#dc2626">Lỗi kết nối đến server</td></tr>';
+        tbody.innerHTML = '<tr><td colspan="9" class="dtc-empty" style="color:#dc2626">Lỗi kết nối đến server</td></tr>';
     });
 }
 

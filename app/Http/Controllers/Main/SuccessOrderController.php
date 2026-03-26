@@ -47,8 +47,37 @@ class SuccessOrderController extends Controller
             $maDHList = array_filter($maDHList);
             $existingMaDH = DB::table('donhang')->whereIn('MaDH', $maDHList)->pluck('MaDH')->toArray();
 
+            // Lấy thông tin khách hàng
+            $customers = DB::table('khachhang')
+                ->whereIn('MaDH', $maDHList)
+                ->select('MaDH', 'TenKH', 'SoDienThoai', 'DiaChi', 'Xa', 'Huyen', 'Tinh')
+                ->get()
+                ->keyBy('MaDH');
+
+            // Lấy chi tiết sản phẩm
+            $orderProducts = DB::table('chitietdonhang as ct')
+                ->leftJoin('sanpham as sp', 'sp.MaSP', '=', 'ct.MaSP')
+                ->whereIn('ct.MaDH', $maDHList)
+                ->select('ct.MaDH', 'sp.TenSP', 'ct.SoLuong')
+                ->get()
+                ->groupBy('MaDH');
+
             foreach ($orders as $order) {
-                $order->existsInDb = in_array($order->MaDH ?? '', $existingMaDH);
+                $maDH = $order->MaDH ?? '';
+                $order->existsInDb = in_array($maDH, $existingMaDH);
+
+                // Khách hàng
+                $kh = $customers->get($maDH);
+                $order->TenKH = $kh ? $kh->TenKH : '';
+                $order->SoDienThoai = $kh ? $kh->SoDienThoai : '';
+                $order->DiaChi = $kh ? $kh->DiaChi : '';
+                $order->Xa = $kh ? $kh->Xa : '';
+                $order->Huyen = $kh ? $kh->Huyen : '';
+                $order->Tinh = $kh ? $kh->Tinh : '';
+
+                // Sản phẩm
+                $products = $orderProducts->get($maDH);
+                $order->SanPham = $products ? $products->map(fn($p) => $p->TenSP . ' x' . $p->SoLuong)->values()->toArray() : [];
             }
         }
 
