@@ -2,6 +2,7 @@
 @section('title', 'Đơn Thành Công')
 @push('styles')
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/flatpickr/dist/flatpickr.min.css">
+<link rel="stylesheet" href="https://cdn.datatables.net/1.13.7/css/jquery.dataTables.min.css">
 <style>
 :root{--hdr:#1e2a4a;--hdr-text:#fff}
 .dtc-wrap{padding:16px}
@@ -22,6 +23,10 @@
 .dtc-badge-no{background:#fef2f2;color:#991b1b;padding:3px 10px;border-radius:12px;font-size:11px;font-weight:600}
 .dtc-summary{display:flex;gap:16px;padding:10px 16px;border-top:1px solid #e2e8f0;background:#f8fafc;font-size:13px;font-weight:600;flex-wrap:wrap}
 .dtc-summary-item{display:flex;align-items:center;gap:6px}
+.dtc-wrap .dataTables_wrapper{padding:0 12px 12px}
+.dtc-wrap .dataTables_filter input{padding:5px 10px;border:1px solid #d1d5db;border-radius:6px;font-size:13px}
+.dtc-wrap .dataTables_length select{padding:4px 8px;border:1px solid #d1d5db;border-radius:6px;font-size:13px}
+.dtc-wrap table.dataTable thead th{background:var(--hdr);color:#fff;border:1px solid #2a3a5e}
 </style>
 @endpush
 
@@ -38,7 +43,7 @@
         </div>
         <div style="padding:12px;overflow-x:auto">
             <div class="dtc-loading" id="dtcLoading"><i class="fa-solid fa-spinner fa-spin fa-2x"></i></div>
-            <table class="dtc-table">
+            <table class="dtc-table" id="dtcTable">
                 <thead>
                     <tr>
                         <th style="width:50px">STT</th>
@@ -66,6 +71,8 @@
 @endsection
 
 @push('scripts')
+<script src="https://code.jquery.com/jquery-3.7.1.min.js"></script>
+<script src="https://cdn.datatables.net/1.13.7/js/jquery.dataTables.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/flatpickr"></script>
 <script src="https://cdn.jsdelivr.net/npm/flatpickr/dist/l10n/vn.js"></script>
 <script>
@@ -90,6 +97,11 @@ function loadDonTC() {
     const loading = document.getElementById('dtcLoading');
     const tbody = document.getElementById('dtcBody');
     const btn = document.getElementById('btnXem');
+
+    // Destroy existing DataTable
+    if ($.fn.DataTable.isDataTable('#dtcTable')) {
+        $('#dtcTable').DataTable().destroy();
+    }
 
     loading.style.display = 'block';
     btn.disabled = true;
@@ -180,6 +192,25 @@ function loadDonTC() {
         document.getElementById('sumNo').textContent = countNo;
         document.getElementById('sumMoney').textContent = totalMoney.toLocaleString('vi-VN');
         document.getElementById('dtcSummary').style.display = 'flex';
+
+        // Init DataTable
+        $('#dtcTable').DataTable({
+            paging: true,
+            pageLength: 25,
+            ordering: false,
+            info: true,
+            searching: true,
+            language: {
+                search: 'Tìm kiếm:',
+                lengthMenu: 'Hiển _MENU_ dòng',
+                info: 'Hiển _START_ - _END_ / _TOTAL_ đơn',
+                infoEmpty: 'Không có dữ liệu',
+                infoFiltered: '(lọc từ _MAX_ dòng)',
+                zeroRecords: 'Không tìm thấy kết quả',
+                paginate: { previous: 'Trước', next: 'Sau' }
+            },
+            columnDefs: [{ targets: 0, searchable: false }]
+        });
     })
     .catch(() => {
         loading.style.display = 'none';
