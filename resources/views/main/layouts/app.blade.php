@@ -139,6 +139,19 @@
 
                     <div class="nav-divider"></div>
 
+                    @if(app()->environment('local'))
+                    <!-- DB Sync - CHỈ LOCALHOST -->
+                    <a href="{{ route('dbSync.index') }}" class="nav-item ripple-effect {{ request()->routeIs('dbSync.*') ? 'active' : '' }}" style="border-left: 3px solid #f97316;">
+                        <span class="nav-icon floating">
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 7v10c0 2.21 3.582 4 8 4s8-1.79 8-4V7M4 7c0 2.21 3.582 4 8 4s8-1.79 8-4M4 7c0-2.21 3.582-4 8-4s8 1.79 8 4m0 5c0 2.21-3.582 4-8 4s-8-1.79-8-4" />
+                            </svg>
+                        </span>
+                        <span class="nav-text">Đồng Bộ Database <small style="background:#f97316;color:#fff;font-size:9px;padding:1px 5px;border-radius:8px;vertical-align:middle">LOCAL</small></span>
+                        <span class="nav-glow"></span>
+                    </a>
+                    @endif
+
                     <!-- Đăng xuất -->
                     <form action="{{ route('logout') }}" method="POST" style="display: inline; width: 100%;">
                         @csrf

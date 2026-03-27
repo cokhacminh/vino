@@ -11,6 +11,7 @@ use App\Http\Controllers\Main\TransferOrderController;
 use App\Http\Controllers\Main\ReconciliationController;
 use App\Http\Controllers\Main\SuccessOrderController;
 use App\Http\Controllers\Main\ActivityLogController;
+use App\Http\Controllers\Main\DbSyncController;
 
 // Trang chủ
 Route::get('/', function () {
@@ -103,5 +104,12 @@ Route::middleware('auth')->group(function () {
     Route::prefix('reconciliation')->name('reconciliation.')->group(function() {
         Route::get('/', [ReconciliationController::class, 'index'])->name('index');
         Route::post('/fetch', [ReconciliationController::class, 'fetchData'])->name('fetch');
+    });
+
+    // 10. DB Sync - CHỈ LOCALHOST
+    Route::prefix('db-sync')->name('dbSync.')->group(function () {
+        Route::get('/', [DbSyncController::class, 'index'])->name('index');
+        Route::post('/test-connection', [DbSyncController::class, 'testConnection'])->name('testConnection');
+        Route::post('/sync', [DbSyncController::class, 'sync'])->name('sync');
     });
 });

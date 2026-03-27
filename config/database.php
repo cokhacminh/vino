@@ -63,6 +63,24 @@ return [
             ]) : [],
         ],
 
+        'mysql_remote' => [
+            'driver' => 'mysql',
+            'url' => null,
+            'host' => env('REMOTE_DB_HOST', '127.0.0.1'),
+            'port' => env('REMOTE_DB_PORT', '3306'),
+            'database' => env('REMOTE_DB_DATABASE', 'laravel'),
+            'username' => env('REMOTE_DB_USERNAME', 'root'),
+            'password' => env('REMOTE_DB_PASSWORD', ''),
+            'unix_socket' => '',
+            'charset' => 'utf8mb4',
+            'collation' => 'utf8mb4_unicode_ci',
+            'prefix' => '',
+            'prefix_indexes' => true,
+            'strict' => false,
+            'engine' => null,
+            'options' => [],
+        ],
+
         'mariadb' => [
             'driver' => 'mariadb',
             'url' => env('DB_URL'),
